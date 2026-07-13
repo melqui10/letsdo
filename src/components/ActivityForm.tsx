@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { Activity, Category, Priority, Profile } from '../types'
-import { CATEGORY_LABELS, PRIORITY_LABELS } from '../types'
+import { CATEGORY_COLORS, PRIORITY_LABELS } from '../types'
 import type { ActivityInput } from '../lib/activities'
 import {
   buildRecurrenceRule,
@@ -12,6 +12,8 @@ import {
 interface Props {
   initial?: Activity | null
   members: Profile[]
+  categories: Category[]
+  onCreateCategory: (name: string, color: string) => Promise<Category>
   onCancel: () => void
   onSubmit: (input: ActivityInput) => Promise<void>
 }
@@ -26,17 +28,43 @@ function toLocalInput(iso: string | null): string {
   )}:${pad(d.getMinutes())}`
 }
 
-export function ActivityForm({ initial, members, onCancel, onSubmit }: Props) {
+export function ActivityForm({
+  initial,
+  members,
+  categories,
+  onCreateCategory,
+  onCancel,
+  onSubmit,
+}: Props) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'media')
-  const [category, setCategory] = useState<Category>(initial?.category ?? 'casa')
+  const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
   const [assignee, setAssignee] = useState(initial?.assignee_id ?? '')
   const [dueAt, setDueAt] = useState(toLocalInput(initial?.due_at ?? null))
   const [recurrence, setRecurrence] = useState<RecurrenceOption>(
     recurrenceOptionFromRule(initial?.recurrence_rule ?? null),
   )
   const [saving, setSaving] = useState(false)
+
+  // Criação inline de categoria.
+  const [creatingCat, setCreatingCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatColor, setNewCatColor] = useState<string>(CATEGORY_COLORS[0])
+  const [catError, setCatError] = useState<string | null>(null)
+
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) return
+    setCatError(null)
+    try {
+      const cat = await onCreateCategory(newCatName.trim(), newCatColor)
+      setCategoryId(cat.id)
+      setCreatingCat(false)
+      setNewCatName('')
+    } catch (e) {
+      setCatError(e instanceof Error ? e.message : 'Não foi possível criar.')
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -48,7 +76,7 @@ export function ActivityForm({ initial, members, onCancel, onSubmit }: Props) {
         title: title.trim(),
         description: description.trim() || null,
         priority,
-        category,
+        category_id: categoryId || null,
         assignee_id: assignee || null,
         due_at: due ? due.toISOString() : null,
         recurrence_rule: buildRecurrenceRule(recurrence, due ?? undefined),
@@ -104,13 +132,14 @@ export function ActivityForm({ initial, members, onCancel, onSubmit }: Props) {
             <label>
               <span className="mb-1 block text-gray-600">Categoria</span>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Category)}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
                 className={field}
               >
-                {(Object.keys(CATEGORY_LABELS) as Category[]).map((v) => (
-                  <option key={v} value={v}>
-                    {CATEGORY_LABELS[v]}
+                <option value="">Sem categoria</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -159,6 +188,63 @@ export function ActivityForm({ initial, members, onCancel, onSubmit }: Props) {
               className={field}
             />
           </label>
+
+          <div className="text-sm">
+            {!creatingCat ? (
+              <button
+                type="button"
+                onClick={() => setCreatingCat(true)}
+                className="font-medium text-indigo-600"
+              >
+                ＋ Nova categoria
+              </button>
+            ) : (
+              <div className="space-y-2 rounded-lg border border-gray-200 p-3">
+                <input
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="Nome da categoria"
+                  className={field}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_COLORS.map((c) => (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => setNewCatColor(c)}
+                      aria-label={`Cor ${c}`}
+                      className={`h-7 w-7 rounded-full ${
+                        newCatColor === c
+                          ? 'ring-2 ring-gray-400 ring-offset-2'
+                          : ''
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                {catError && <p className="text-xs text-red-600">{catError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCreateCategory}
+                    className="flex-1 rounded-lg bg-indigo-600 py-1.5 font-medium text-white"
+                  >
+                    Adicionar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreatingCat(false)
+                      setCatError(null)
+                    }}
+                    className="flex-1 rounded-lg border border-gray-300 py-1.5 font-medium text-gray-700"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 flex gap-2">

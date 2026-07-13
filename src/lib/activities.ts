@@ -1,11 +1,11 @@
 import { supabase } from './supabase'
-import type { Activity, Category, KanbanStatus, Priority } from '../types'
+import type { Activity, KanbanStatus, Priority } from '../types'
 
 export interface ActivityInput {
   title: string
   description?: string | null
   priority: Priority
-  category: Category
+  category_id?: string | null
   assignee_id?: string | null
   due_at?: string | null
   is_all_day?: boolean

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Activity, Household, Priority, Profile } from '../types'
+import type { Activity, Category, Household, Priority, Profile } from '../types'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getHouseholdMembers } from '../lib/household'
+import { createCategory, listCategories } from '../lib/categories'
 import {
   createActivity,
   deleteActivity,
@@ -33,6 +34,7 @@ export function ListaTarefas({ household }: { household: Household }) {
   const { user } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [members, setMembers] = useState<Profile[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [filter, setFilter] = useState<Filter>('todas')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
@@ -49,14 +51,22 @@ export function ListaTarefas({ household }: { household: Household }) {
       )
 
   const load = useCallback(async () => {
-    const [acts, mem] = await Promise.all([
+    const [acts, mem, cats] = await Promise.all([
       listActivities(household.id),
       getHouseholdMembers(household.id),
+      listCategories(household.id),
     ])
     setActivities(acts)
     setMembers(mem)
+    setCategories(cats)
     setLoading(false)
   }, [household.id])
+
+  const handleCreateCategory = async (name: string, color: string) => {
+    const cat = await createCategory(household.id, name, color)
+    setCategories(await listCategories(household.id))
+    return cat
+  }
 
   useEffect(() => {
     load()
@@ -166,6 +176,7 @@ export function ListaTarefas({ household }: { household: Household }) {
                 key={a.id}
                 activity={a}
                 members={members}
+                categories={categories}
                 onToggle={(x) =>
                   run(toggleDone(x.id, !x.is_done)).then(load)
                 }
@@ -195,6 +206,8 @@ export function ListaTarefas({ household }: { household: Household }) {
         <ActivityForm
           initial={editing}
           members={members}
+          categories={categories}
+          onCreateCategory={handleCreateCategory}
           onCancel={() => {
             setShowForm(false)
             setEditing(null)

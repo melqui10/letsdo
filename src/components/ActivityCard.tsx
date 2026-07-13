@@ -1,12 +1,12 @@
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import type { Activity, Profile } from '../types'
-import { CATEGORY_LABELS } from '../types'
+import type { Activity, Category, Profile } from '../types'
 import { PriorityBadge } from './PriorityBadge'
 
 interface Props {
   activity: Activity
   members: Profile[]
+  categories: Category[]
   onToggle: (a: Activity) => void
   onEdit: (a: Activity) => void
   onDelete: (a: Activity) => void
@@ -15,11 +15,13 @@ interface Props {
 export function ActivityCard({
   activity,
   members,
+  categories,
   onToggle,
   onEdit,
   onDelete,
 }: Props) {
   const assignee = members.find((m) => m.id === activity.assignee_id)
+  const category = categories.find((c) => c.id === activity.category_id)
   const recurring = Boolean(activity.recurrence_rule)
 
   return (
@@ -49,9 +51,17 @@ export function ActivityCard({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
           <PriorityBadge priority={activity.priority} />
-          <span className="rounded-full bg-gray-100 px-2 py-0.5">
-            {CATEGORY_LABELS[activity.category]}
-          </span>
+          {category && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5"
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: category.color }}
+              />
+              {category.name}
+            </span>
+          )}
           {activity.due_at && (
             <span>
               {format(new Date(activity.due_at), "dd MMM 'às' HH:mm", {
