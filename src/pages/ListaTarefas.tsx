@@ -4,6 +4,7 @@ import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getHouseholdMembers } from '../lib/household'
 import { createCategory, listCategories } from '../lib/categories'
+import { errMsg } from '../lib/errors'
 import {
   createActivity,
   deleteActivity,
@@ -46,9 +47,7 @@ export function ListaTarefas({ household }: { household: Household }) {
   const run = (p: Promise<unknown>) =>
     p
       .then(() => setError(null))
-      .catch((e) =>
-        setError(e instanceof Error ? e.message : 'Não foi possível salvar.'),
-      )
+      .catch((e) => setError(errMsg(e, 'Não foi possível salvar.')))
 
   const load = useCallback(async () => {
     const [acts, mem, cats] = await Promise.all([
@@ -62,8 +61,12 @@ export function ListaTarefas({ household }: { household: Household }) {
     setLoading(false)
   }, [household.id])
 
-  const handleCreateCategory = async (name: string, color: string) => {
-    const cat = await createCategory(household.id, name, color)
+  const handleCreateCategory = async (
+    name: string,
+    color: string,
+    icon: string | null,
+  ) => {
+    const cat = await createCategory(household.id, name, color, icon)
     setCategories(await listCategories(household.id))
     return cat
   }
@@ -114,7 +117,7 @@ export function ListaTarefas({ household }: { household: Household }) {
       }
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível salvar.')
+      setError(errMsg(e, 'Não foi possível salvar.'))
     }
     setShowForm(false)
     setEditing(null)

@@ -3,10 +3,12 @@ import { AuthProvider, useAuth } from './lib/AuthContext'
 import { Login } from './pages/Login'
 import { Onboarding } from './pages/Onboarding'
 import { ListaTarefas } from './pages/ListaTarefas'
+import { Calendario } from './pages/Calendario'
+import { Configuracoes } from './pages/Configuracoes'
 import { ensureProfile, getMyHouseholds } from './lib/household'
 import type { Household } from './types'
 
-type Tab = 'lista' | 'calendario' | 'kanban'
+type Tab = 'lista' | 'calendario' | 'kanban' | 'ajustes'
 
 function Splash() {
   return (
@@ -26,19 +28,12 @@ function Placeholder({ title }: { title: string }) {
   )
 }
 
-function BottomNav({
-  tab,
-  setTab,
-  onSignOut,
-}: {
-  tab: Tab
-  setTab: (t: Tab) => void
-  onSignOut: () => void
-}) {
+function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const items: { key: Tab; label: string; icon: string }[] = [
     { key: 'lista', label: 'Lista', icon: '📋' },
     { key: 'calendario', label: 'Agenda', icon: '📅' },
     { key: 'kanban', label: 'Quadro', icon: '🗂️' },
+    { key: 'ajustes', label: 'Ajustes', icon: '⚙️' },
   ]
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-md items-stretch justify-around border-t border-gray-200 bg-white">
@@ -54,13 +49,6 @@ function BottomNav({
           {it.label}
         </button>
       ))}
-      <button
-        onClick={onSignOut}
-        className="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-gray-400"
-      >
-        <span className="text-lg">🚪</span>
-        Sair
-      </button>
     </nav>
   )
 }
@@ -97,9 +85,10 @@ function Shell() {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {tab === 'lista' && <ListaTarefas household={household} />}
-      {tab === 'calendario' && <Placeholder title="Calendário" />}
+      {tab === 'calendario' && <Calendario household={household} />}
       {tab === 'kanban' && <Placeholder title="Quadro Kanban" />}
-      <BottomNav tab={tab} setTab={setTab} onSignOut={signOut} />
+      {tab === 'ajustes' && <Configuracoes onSignOut={signOut} />}
+      <BottomNav tab={tab} setTab={setTab} />
     </div>
   )
 }

@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import type { Activity, Category, Priority, Profile } from '../types'
-import { CATEGORY_COLORS, PRIORITY_LABELS } from '../types'
+import { CATEGORY_COLORS, CATEGORY_ICONS, PRIORITY_LABELS } from '../types'
 import type { ActivityInput } from '../lib/activities'
+import { errMsg } from '../lib/errors'
 import {
   buildRecurrenceRule,
   RECURRENCE_LABELS,
   recurrenceOptionFromRule,
+  WEEKDAY_LABELS,
+  weekdaysFromRule,
   type RecurrenceOption,
 } from '../lib/recurrence'
 
@@ -13,7 +16,13 @@ interface Props {
   initial?: Activity | null
   members: Profile[]
   categories: Category[]
-  onCreateCategory: (name: string, color: string) => Promise<Category>
+  // Data/hora inicial (ISO) ao criar — ex.: dia tocado no calendário.
+  defaultDueAt?: string | null
+  onCreateCategory: (
+    name: string,
+    color: string,
+    icon: string | null,
+  ) => Promise<Category>
   onCancel: () => void
   onSubmit: (input: ActivityInput) => Promise<void>
 }
@@ -32,6 +41,7 @@ export function ActivityForm({
   initial,
   members,
   categories,
+  defaultDueAt,
   onCreateCategory,
   onCancel,
   onSubmit,
@@ -41,28 +51,50 @@ export function ActivityForm({
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'media')
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
   const [assignee, setAssignee] = useState(initial?.assignee_id ?? '')
-  const [dueAt, setDueAt] = useState(toLocalInput(initial?.due_at ?? null))
+  const [dueAt, setDueAt] = useState(
+    toLocalInput(initial?.due_at ?? defaultDueAt ?? null),
+  )
+  const [allDay, setAllDay] = useState(initial?.is_all_day ?? false)
   const [recurrence, setRecurrence] = useState<RecurrenceOption>(
     recurrenceOptionFromRule(initial?.recurrence_rule ?? null),
   )
+  // Dias da semana (getDay(): 0=dom..6=sáb) quando a recorrência é 'dias_semana'.
+  const [weekdays, setWeekdays] = useState<number[]>(
+    weekdaysFromRule(initial?.recurrence_rule ?? null),
+  )
   const [saving, setSaving] = useState(false)
+
+  const toggleWeekday = (d: number) =>
+    setWeekdays((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort(),
+    )
+
+  // Ao escolher "Dias da semana" sem nenhum dia marcado, sugere o dia da data.
+  const handleRecurrenceChange = (v: RecurrenceOption) => {
+    setRecurrence(v)
+    if (v === 'dias_semana' && weekdays.length === 0) {
+      const base = dueAt ? new Date(dueAt) : new Date()
+      setWeekdays([base.getDay()])
+    }
+  }
 
   // Criação inline de categoria.
   const [creatingCat, setCreatingCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [newCatColor, setNewCatColor] = useState<string>(CATEGORY_COLORS[0])
+  const [newCatIcon, setNewCatIcon] = useState<string>(CATEGORY_ICONS[0])
   const [catError, setCatError] = useState<string | null>(null)
 
   const handleCreateCategory = async () => {
     if (!newCatName.trim()) return
     setCatError(null)
     try {
-      const cat = await onCreateCategory(newCatName.trim(), newCatColor)
+      const cat = await onCreateCategory(newCatName.trim(), newCatColor, newCatIcon)
       setCategoryId(cat.id)
       setCreatingCat(false)
       setNewCatName('')
     } catch (e) {
-      setCatError(e instanceof Error ? e.message : 'Não foi possível criar.')
+      setCatError(errMsg(e, 'Não foi possível criar.'))
     }
   }
 
@@ -79,7 +111,12 @@ export function ActivityForm({
         category_id: categoryId || null,
         assignee_id: assignee || null,
         due_at: due ? due.toISOString() : null,
-        recurrence_rule: buildRecurrenceRule(recurrence, due ?? undefined),
+        is_all_day: due ? allDay : false,
+        recurrence_rule: buildRecurrenceRule(
+          recurrence,
+          due ?? undefined,
+          weekdays,
+        ),
       })
     } finally {
       setSaving(false)
@@ -139,7 +176,7 @@ export function ActivityForm({
                 <option value="">Sem categoria</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.icon ? `${c.icon} ${c.name}` : c.name}
                   </option>
                 ))}
               </select>
@@ -164,7 +201,7 @@ export function ActivityForm({
               <select
                 value={recurrence}
                 onChange={(e) =>
-                  setRecurrence(e.target.value as RecurrenceOption)
+                  handleRecurrenceChange(e.target.value as RecurrenceOption)
                 }
                 className={field}
               >
@@ -179,15 +216,56 @@ export function ActivityForm({
             </label>
           </div>
 
-          <label className="block text-sm">
-            <span className="mb-1 block text-gray-600">Data e hora</span>
+          {recurrence === 'dias_semana' && (
+            <div className="text-sm">
+              <span className="mb-1 block text-gray-600">
+                Repetir nos dias
+              </span>
+              <div className="flex justify-between gap-1">
+                {WEEKDAY_LABELS.map((label, d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    onClick={() => toggleWeekday(d)}
+                    className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${
+                      weekdays.includes(d)
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="text-sm">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-gray-600">
+                {allDay ? 'Data' : 'Data e hora'}
+              </span>
+              <label className="flex items-center gap-1.5 text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={allDay}
+                  onChange={(e) => setAllDay(e.target.checked)}
+                  className="h-4 w-4 accent-indigo-600"
+                />
+                Dia inteiro
+              </label>
+            </div>
             <input
-              type="datetime-local"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
+              type={allDay ? 'date' : 'datetime-local'}
+              value={allDay ? dueAt.slice(0, 10) : dueAt}
+              onChange={(e) =>
+                setDueAt(
+                  allDay && e.target.value ? `${e.target.value}T00:00` : e.target.value,
+                )
+              }
               className={field}
             />
-          </label>
+          </div>
 
           <div className="text-sm">
             {!creatingCat ? (
@@ -200,12 +278,37 @@ export function ActivityForm({
               </button>
             ) : (
               <div className="space-y-2 rounded-lg border border-gray-200 p-3">
-                <input
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="Nome da categoria"
-                  className={field}
-                />
+                <div className="flex items-center gap-2">
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg"
+                    style={{ backgroundColor: `${newCatColor}22` }}
+                  >
+                    {newCatIcon}
+                  </span>
+                  <input
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="Nome da categoria"
+                    className={field}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATEGORY_ICONS.map((ic) => (
+                    <button
+                      type="button"
+                      key={ic}
+                      onClick={() => setNewCatIcon(ic)}
+                      aria-label={`Ícone ${ic}`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg ${
+                        newCatIcon === ic
+                          ? 'bg-indigo-100 ring-2 ring-indigo-400'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      {ic}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORY_COLORS.map((c) => (
                     <button

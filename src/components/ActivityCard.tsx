@@ -53,20 +53,27 @@ export function ActivityCard({
           <PriorityBadge priority={activity.priority} />
           {category && (
             <span
-              className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+              style={{ backgroundColor: `${category.color}22`, color: category.color }}
             >
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: category.color }}
-              />
+              {category.icon ? (
+                <span>{category.icon}</span>
+              ) : (
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: category.color }}
+                />
+              )}
               {category.name}
             </span>
           )}
           {activity.due_at && (
             <span>
-              {format(new Date(activity.due_at), "dd MMM 'às' HH:mm", {
-                locale: ptBR,
-              })}
+              {format(
+                new Date(activity.due_at),
+                activity.is_all_day ? 'dd MMM' : "dd MMM 'às' HH:mm",
+                { locale: ptBR },
+              )}
             </span>
           )}
           {recurring && <span title="Tarefa recorrente">🔁</span>}

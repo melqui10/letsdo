@@ -101,11 +101,13 @@ O coração do app, utilizável no celular:
 - Sincronização em tempo real entre celulares
 - PWA instalável
 
-### 🔜 Fase 2 — Calendário
-- Visão mês/semana reusando a entidade `activities`
-- Criar/editar eventos direto no calendário
-- Cores por categoria (casa vs igreja)
-- Eventos de dia inteiro
+### ✅ Fase 2 — Calendário
+- [x] Visão de mês reusando a entidade `activities` (grade dom–sáb, navegação de meses, "Hoje")
+- [x] Criar/editar eventos direto no calendário (toque no dia → painel + FAB)
+- [x] Cores por categoria (dots no dia, cor da categoria)
+- [x] Eventos de dia inteiro (toggle no formulário)
+- [x] Recorrentes aparecem em cada ocorrência do mês (diária/semanal/mensal)
+- [x] Sincronização em tempo real (mesmo canal Realtime da Lista)
 
 ### 🔜 Fase 3 — Kanban
 - Colunas: A fazer / Fazendo / Feito
@@ -144,6 +146,20 @@ O coração do app, utilizável no celular:
 - [ ] Criar projeto no Supabase e preencher `.env` (você)
 - [ ] Aplicar migration (`npx supabase db push`)
 - [ ] Publicação no GitHub (commit local feito; falta `git push` para o remoto)
+
+### 2026-07-13 (Fase 2 — Calendário)
+- [x] Helpers de calendário (`src/lib/calendar.ts`): grade do mês + expansão de ocorrências recorrentes por dia (date-fns)
+- [x] Página `src/pages/Calendario.tsx`: visão de mês, painel do dia, criação/edição via `ActivityForm`, realtime
+- [x] `ActivityForm`: toggle "Dia inteiro" (`is_all_day`) + data pré-preenchida (`defaultDueAt`) ao criar pelo calendário
+- [x] `ActivityCard`: eventos de dia inteiro exibidos sem horário
+- [x] Ligado ao `App.tsx` (aba Agenda) e build de produção validado (`npm run build` ✅)
+
+### 2026-07-13 (Fase 2.1 — ícones + correção de categorias)
+- [x] **Causa raiz** do "não há categorias / erro ao criar / Responsável vazio": migration `0002` estava só local; aplicada no remoto (`supabase db push`)
+- [x] Migration `0003_category_icon.sql`: coluna `icon` (emoji) + ícones nas categorias padrão + `create_household` atualizado
+- [x] Seletor de ícone no formulário de categoria; ícone exibido no dropdown e nos cartões
+- [x] `src/lib/errors.ts` (`errMsg`): erros do Supabase (PostgrestError) não são `instanceof Error` — agora a mensagem real aparece em vez de "Não foi possível…"
+- [x] Migrations remotas sincronizadas: `0001`, `0002`, `0003` ✅
 
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).

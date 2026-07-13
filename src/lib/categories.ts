@@ -15,10 +15,11 @@ export async function createCategory(
   householdId: string,
   name: string,
   color: string,
+  icon: string | null = null,
 ): Promise<Category> {
   const { data, error } = await supabase
     .from('categories')
-    .insert({ household_id: householdId, name, color })
+    .insert({ household_id: householdId, name, color, icon })
     .select()
     .single()
   if (error) throw error

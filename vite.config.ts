@@ -10,6 +10,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Injeta nossos handlers de push (/push-sw.js) no SW gerado pelo Workbox.
+      workbox: {
+        importScripts: ['/push-sw.js'],
+      },
       manifest: {
         name: 'Letsdo',
         short_name: 'Letsdo',

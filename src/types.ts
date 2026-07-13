@@ -16,12 +16,13 @@ export interface Household {
   created_at: string
 }
 
-// Categoria personalizável por lar (com cor).
+// Categoria personalizável por lar (com cor e ícone).
 export interface Category {
   id: string
   household_id: string
   name: string
   color: string
+  icon: string | null
   created_at: string
 }
 
@@ -35,6 +36,26 @@ export const CATEGORY_COLORS = [
   '#db2777',
   '#7c3aed',
   '#6b7280',
+] as const
+
+// Paleta de ícones (emoji) oferecida ao criar uma categoria.
+export const CATEGORY_ICONS = [
+  '🏠',
+  '⛪',
+  '🛒',
+  '💰',
+  '🍽️',
+  '🧹',
+  '🚗',
+  '💊',
+  '🎓',
+  '💼',
+  '🏋️',
+  '🐾',
+  '🎉',
+  '✈️',
+  '📌',
+  '❤️',
 ] as const
 
 export interface Activity {
@@ -52,6 +73,17 @@ export interface Activity {
   recurrence_rule: string | null
   created_by: string | null
   created_at: string
+  updated_at: string
+}
+
+// Preferências de notificação push (por usuário).
+export interface NotificationPrefs {
+  profile_id: string
+  daily_enabled: boolean
+  daily_time: string // 'HH:MM'
+  before_event_enabled: boolean
+  before_event_minutes: number
+  feed_enabled: boolean
   updated_at: string
 }
 
