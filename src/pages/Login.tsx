@@ -39,7 +39,7 @@ export function Login() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-indigo-50 p-6">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
         <h1 className="mb-1 text-center text-2xl font-bold text-indigo-700">
-          Letsdo
+          Let's Do!
         </h1>
         <p className="mb-6 text-center text-sm text-gray-500">
           Suas tarefas, calendário e Kanban num só lugar.

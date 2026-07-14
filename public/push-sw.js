@@ -9,7 +9,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' }
   }
 
-  const title = data.title || 'Letsdo'
+  const title = data.title || "Let's Do!"
   const options = {
     body: data.body || '',
     icon: data.icon || '/vite.svg',

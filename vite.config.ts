@@ -15,8 +15,8 @@ export default defineConfig({
         importScripts: ['/push-sw.js'],
       },
       manifest: {
-        name: 'Letsdo',
-        short_name: 'Letsdo',
+        name: "Let's Do!",
+        short_name: "Let's Do!",
         description: 'Hub doméstico compartilhado: tarefas, calendário e Kanban.',
         theme_color: '#4f46e5',
         background_color: '#ffffff',

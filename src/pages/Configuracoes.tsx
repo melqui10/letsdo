@@ -201,7 +201,7 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
             <div className="space-y-3">
               {iosNeedsInstall && (
                 <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
-                  📲 No iPhone, primeiro adicione o Letsdo à tela inicial
+                  📲 No iPhone, primeiro adicione o Let's Do! à tela inicial
                   (botão Compartilhar → <b>Adicionar à Tela de Início</b>) e
                   abra o app por lá. Só então dá para ativar as notificações.
                 </div>
