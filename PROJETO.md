@@ -164,6 +164,20 @@ O coração do app, utilizável no celular:
 - [x] `src/lib/errors.ts` (`errMsg`): erros do Supabase (PostgrestError) não são `instanceof Error` — agora a mensagem real aparece em vez de "Não foi possível…"
 - [x] Migrations remotas sincronizadas: `0001`, `0002`, `0003` ✅
 
+### 2026-07-14 (Deploy + notificações + UX)
+- [x] **Publicado no ar**: front no Cloudflare (Workers static assets, `letsdo.melqui-e.workers.dev`); build automático a cada `git push`. Corrigida tela branca (variáveis `VITE_*` faltando no build).
+- [x] **Push notifications (Web Push/VAPID)** funcionando: SW de push, `lib/push.ts`, tela **Ajustes** com tipos (resumo diário, antes de evento, atividade do lar), fluxo iOS (instalar na tela inicial). Secrets VAPID + função `send-push` deployados.
+- [x] Migrations `0004_push` (subscriptions + prefs), `0005/0006` (gatilho de "atividade do lar" via `pg_net`, lendo segredos do **Vault** — `alter database` é bloqueado no Supabase hospedado).
+- [x] `send-push` filtra destinatários por preferência e exclui quem disparou a ação.
+- [x] **Editar nome de exibição** (Ajustes → Perfil).
+- [x] **Recorrência mensal por dia da semana** (ex.: 1ª segunda) — RRULE `BYDAY` posicional; dropdown mostra só "Mensal" + seletor de modo (mesmo dia / dia da semana).
+- [x] **Filtros** na Lista: por categoria e por prioridade.
+- [x] **Tarefa × Compromisso** (migration `0007`): coluna `kind` + `end_at` + `show_in_agenda`. Agenda mostra compromissos + tarefas marcadas; Lista mostra só tarefas; FAB da Agenda cria compromisso.
+- [x] **Tema escuro** opcional (Claro/Escuro/Sistema) — `lib/theme.ts` + remapeamento CSS central sob `.dark`; Ajustes → Aparência.
+- [x] Toggle das notificações realinhado (layout flex).
+- [ ] **Aplicar migration `0007` no remoto** (`npx supabase db push`) — pendente (você).
+- [ ] **Agendador `pg_cron`** para "resumo diário" e "antes de evento" (os toggles existem; falta quem dispara nos horários).
+
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).
 - Policies de UPDATE/DELETE em `households` (renomear/excluir lar).
