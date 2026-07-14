@@ -16,6 +16,29 @@ export async function ensureProfile(
   if (error) throw error
 }
 
+// Perfil do usuário logado (para exibir/editar o nome).
+export async function getMyProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as Profile | null) ?? null
+}
+
+// Atualiza o nome de exibição do usuário.
+export async function updateDisplayName(
+  userId: string,
+  displayName: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName })
+    .eq('id', userId)
+  if (error) throw error
+}
+
 // Households a que o usuário pertence (a RLS já filtra pelos seus).
 export async function getMyHouseholds(): Promise<Household[]> {
   const { data, error } = await supabase

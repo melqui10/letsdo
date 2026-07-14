@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { NotificationPrefs } from '../types'
 import { useAuth } from '../lib/AuthContext'
+import { getMyProfile, updateDisplayName } from '../lib/household'
 import { errMsg } from '../lib/errors'
 import {
   disablePush,
@@ -49,6 +50,9 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
   const [subscribed, setSubscribed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [savedName, setSavedName] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
 
   const iosNeedsInstall = isIos() && !isStandalone()
   const denied = pushSupported() && permission() === 'denied'
@@ -57,7 +61,29 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
     if (!user) return
     getPrefs(user.id).then(setPrefs).catch((e) => setError(errMsg(e, 'Erro ao carregar.')))
     isSubscribed().then(setSubscribed)
+    getMyProfile(user.id)
+      .then((p) => {
+        setName(p?.display_name ?? '')
+        setSavedName(p?.display_name ?? '')
+      })
+      .catch((e) => setError(errMsg(e, 'Erro ao carregar o perfil.')))
   }, [user])
+
+  const saveName = async () => {
+    if (!user) return
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === savedName) return
+    setNameSaving(true)
+    setError(null)
+    try {
+      await updateDisplayName(user.id, trimmed)
+      setSavedName(trimmed)
+    } catch (e) {
+      setError(errMsg(e, 'Não foi possível salvar o nome.'))
+    } finally {
+      setNameSaving(false)
+    }
+  }
 
   const toggleSubscription = async (on: boolean) => {
     if (!user) return
@@ -97,6 +123,37 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
             {error}
           </div>
         )}
+
+        <section>
+          <h2 className="mb-2 text-sm font-semibold text-gray-500">Perfil</h2>
+          <div className="rounded-xl bg-white p-4 shadow-sm">
+            <label className="block text-sm font-medium text-gray-900">
+              Seu nome
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              É como você aparece para o restante do lar.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={saveName}
+                maxLength={40}
+                placeholder="Ex.: Melqui"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={saveName}
+                disabled={nameSaving || !name.trim() || name.trim() === savedName}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {nameSaving ? '…' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section>
           <h2 className="mb-2 text-sm font-semibold text-gray-500">

@@ -13,10 +13,24 @@ import webpush from 'npm:web-push@3.6.7'
 interface Payload {
   profile_id?: string
   household_id?: string
+  // Não notificar quem disparou a ação (ex.: o criador da tarefa).
+  exclude_profile_id?: string
+  // Filtra destinatários pela preferência correspondente.
+  type?: 'feed' | 'daily' | 'before_event'
   title: string
   body?: string
   url?: string
   tag?: string
+}
+
+// Coluna de preferência para cada tipo e o default quando não há linha salva.
+const PREF_BY_TYPE: Record<
+  NonNullable<Payload['type']>,
+  { col: string; def: boolean }
+> = {
+  feed: { col: 'feed_enabled', def: true },
+  daily: { col: 'daily_enabled', def: false },
+  before_event: { col: 'before_event_enabled', def: false },
 }
 
 const supabase = createClient(
@@ -32,14 +46,33 @@ webpush.setVapidDetails(
 
 async function profileIdsFor(payload: Payload): Promise<string[]> {
   if (payload.profile_id) return [payload.profile_id]
-  if (payload.household_id) {
-    const { data } = await supabase
-      .from('household_members')
-      .select('profile_id')
-      .eq('household_id', payload.household_id)
-    return (data ?? []).map((r) => r.profile_id as string)
+  if (!payload.household_id) return []
+
+  const { data } = await supabase
+    .from('household_members')
+    .select('profile_id')
+    .eq('household_id', payload.household_id)
+  let ids = (data ?? []).map((r) => r.profile_id as string)
+
+  if (payload.exclude_profile_id) {
+    ids = ids.filter((id) => id !== payload.exclude_profile_id)
   }
-  return []
+
+  // Respeita a preferência do usuário para este tipo de notificação.
+  if (payload.type && ids.length) {
+    const { col, def } = PREF_BY_TYPE[payload.type]
+    const { data: prefs } = await supabase
+      .from('notification_prefs')
+      .select(`profile_id, ${col}`)
+      .in('profile_id', ids)
+    const rows = (prefs ?? []) as Record<string, unknown>[]
+    ids = ids.filter((id) => {
+      const row = rows.find((r) => r.profile_id === id)
+      return row ? Boolean(row[col]) : def // sem linha salva = default
+    })
+  }
+
+  return ids
 }
 
 Deno.serve(async (req) => {
