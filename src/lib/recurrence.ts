@@ -13,9 +13,19 @@ export const RECURRENCE_LABELS: Record<RecurrenceOption, string> = {
   diaria: 'Diariamente',
   semanal: 'Semanalmente',
   dias_semana: 'Dias da semana',
-  mensal: 'Mensalmente (mesmo dia do mês)',
-  mensal_dia_semana: 'Mensalmente (por dia da semana)',
+  mensal: 'Mensalmente',
+  mensal_dia_semana: 'Mensalmente',
 }
+
+// Opções exibidas no dropdown. As duas variações mensais são colapsadas em
+// "Mensal" — a escolha entre elas vira um seletor à parte no formulário.
+export const RECURRENCE_MENU: RecurrenceOption[] = [
+  'nenhuma',
+  'diaria',
+  'semanal',
+  'dias_semana',
+  'mensal',
+]
 
 // Nomes por extenso indexados por getDay() (0 = domingo).
 const WEEKDAY_FULL = [

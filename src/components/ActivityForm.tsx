@@ -7,6 +7,7 @@ import {
   buildRecurrenceRule,
   describeMonthlyWeekday,
   RECURRENCE_LABELS,
+  RECURRENCE_MENU,
   recurrenceOptionFromRule,
   WEEKDAY_LABELS,
   weekdaysFromRule,
@@ -200,19 +201,17 @@ export function ActivityForm({
             <label>
               <span className="mb-1 block text-gray-600">Repetir</span>
               <select
-                value={recurrence}
+                value={recurrence === 'mensal_dia_semana' ? 'mensal' : recurrence}
                 onChange={(e) =>
                   handleRecurrenceChange(e.target.value as RecurrenceOption)
                 }
                 className={field}
               >
-                {(Object.keys(RECURRENCE_LABELS) as RecurrenceOption[]).map(
-                  (v) => (
-                    <option key={v} value={v}>
-                      {RECURRENCE_LABELS[v]}
-                    </option>
-                  ),
-                )}
+                {RECURRENCE_MENU.map((v) => (
+                  <option key={v} value={v}>
+                    {RECURRENCE_LABELS[v]}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -241,12 +240,37 @@ export function ActivityForm({
             </div>
           )}
 
-          {recurrence === 'mensal_dia_semana' && (
-            <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
-              {dueAt
-                ? describeMonthlyWeekday(new Date(dueAt))
-                : 'Escolha uma data abaixo para definir a posição no mês.'}
-            </p>
+          {(recurrence === 'mensal' || recurrence === 'mensal_dia_semana') && (
+            <div className="space-y-1.5 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="mensal-modo"
+                  checked={recurrence === 'mensal'}
+                  onChange={() => setRecurrence('mensal')}
+                  className="h-4 w-4 accent-indigo-600"
+                />
+                <span className="text-gray-700">Mesmo dia do mês</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="mensal-modo"
+                  checked={recurrence === 'mensal_dia_semana'}
+                  onChange={() => setRecurrence('mensal_dia_semana')}
+                  className="h-4 w-4 accent-indigo-600"
+                />
+                <span className="text-gray-700">
+                  Por dia da semana
+                  {recurrence === 'mensal_dia_semana' && dueAt && (
+                    <span className="text-gray-500">
+                      {' '}
+                      ({describeMonthlyWeekday(new Date(dueAt))})
+                    </span>
+                  )}
+                </span>
+              </label>
+            </div>
           )}
 
           <div className="text-sm">
