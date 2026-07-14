@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Activity, Category, Household, Priority, Profile } from '../types'
+import { PRIORITY_LABELS } from '../types'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getHouseholdMembers } from '../lib/household'
@@ -37,6 +38,8 @@ export function ListaTarefas({ household }: { household: Household }) {
   const [members, setMembers] = useState<Profile[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [filter, setFilter] = useState<Filter>('todas')
+  const [catFilter, setCatFilter] = useState<string>('todas')
+  const [prioFilter, setPrioFilter] = useState<Priority | 'todas'>('todas')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [loading, setLoading] = useState(true)
@@ -97,6 +100,10 @@ export function ListaTarefas({ household }: { household: Household }) {
     if (filter === 'minhas')
       list = list.filter((a) => a.assignee_id === user?.id)
     if (filter === 'pendentes') list = list.filter((a) => !a.is_done)
+    if (catFilter !== 'todas')
+      list = list.filter((a) => a.category_id === catFilter)
+    if (prioFilter !== 'todas')
+      list = list.filter((a) => a.priority === prioFilter)
     return list.sort((a, b) => {
       if (a.is_done !== b.is_done) return a.is_done ? 1 : -1
       const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
@@ -106,7 +113,7 @@ export function ListaTarefas({ household }: { household: Household }) {
       if (b.due_at) return 1
       return 0
     })
-  }, [activities, filter, user?.id])
+  }, [activities, filter, catFilter, prioFilter, user?.id])
 
   const handleSubmit = async (input: ActivityInput) => {
     try {
@@ -157,6 +164,33 @@ export function ListaTarefas({ household }: { household: Household }) {
             {FILTER_LABELS[f]}
           </button>
         ))}
+      </div>
+
+      <div className="flex gap-2 px-4 pb-2">
+        <select
+          value={catFilter}
+          onChange={(e) => setCatFilter(e.target.value)}
+          className="flex-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700"
+        >
+          <option value="todas">Todas as categorias</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.icon ? `${c.icon} ${c.name}` : c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={prioFilter}
+          onChange={(e) => setPrioFilter(e.target.value as Priority | 'todas')}
+          className="flex-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700"
+        >
+          <option value="todas">Todas as prioridades</option>
+          {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+            <option key={p} value={p}>
+              {PRIORITY_LABELS[p]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

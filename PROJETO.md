@@ -117,6 +117,9 @@ O coração do app, utilizável no celular:
 
 ### 💡 Fase 4+ — Ideias futuras
 - **Notificações push / lembretes** (evento da igreja, tarefa do dia)
+- **Resumo mensal de atividades** — painel para acompanhar o que foi executado
+  num período (ex.: por mês), com contagem por categoria/responsável e
+  histórico das tarefas concluídas. *(pedido em 2026-07-14)*
 - **Lista de compras compartilhada**
 - **Sincronização com Google Calendar** (reusa OAuth do projeto Mari AI)
 - **Feed de atividades** ("esposa concluiu X")
