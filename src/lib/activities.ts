@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Activity, KanbanStatus, Priority } from '../types'
+import type { Activity, ActivityKind, KanbanStatus, Priority } from '../types'
 
 export interface ActivityInput {
   title: string
@@ -11,6 +11,9 @@ export interface ActivityInput {
   is_all_day?: boolean
   kanban_status?: KanbanStatus
   recurrence_rule?: string | null
+  kind?: ActivityKind
+  end_at?: string | null
+  show_in_agenda?: boolean
 }
 
 export async function listActivities(householdId: string): Promise<Activity[]> {

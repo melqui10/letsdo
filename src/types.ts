@@ -58,6 +58,14 @@ export const CATEGORY_ICONS = [
   '❤️',
 ] as const
 
+// Distingue um afazer (tarefa) de um evento com hora marcada (compromisso).
+export type ActivityKind = 'tarefa' | 'compromisso'
+
+export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
+  tarefa: 'Tarefa',
+  compromisso: 'Compromisso',
+}
+
 export interface Activity {
   id: string
   household_id: string
@@ -71,6 +79,9 @@ export interface Activity {
   kanban_status: KanbanStatus
   is_done: boolean
   recurrence_rule: string | null
+  kind: ActivityKind
+  end_at: string | null
+  show_in_agenda: boolean
   created_by: string | null
   created_at: string
   updated_at: string

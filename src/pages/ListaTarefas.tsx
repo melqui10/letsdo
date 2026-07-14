@@ -96,7 +96,8 @@ export function ListaTarefas({ household }: { household: Household }) {
   }, [household.id, load])
 
   const visible = useMemo(() => {
-    let list = [...activities]
+    // A Lista é de tarefas; compromissos vivem na Agenda.
+    let list = activities.filter((a) => a.kind !== 'compromisso')
     if (filter === 'minhas')
       list = list.filter((a) => a.assignee_id === user?.id)
     if (filter === 'pendentes') list = list.filter((a) => !a.is_done)
@@ -131,7 +132,9 @@ export function ListaTarefas({ household }: { household: Household }) {
     load()
   }
 
-  const pendentes = activities.filter((a) => !a.is_done).length
+  const pendentes = activities.filter(
+    (a) => a.kind !== 'compromisso' && !a.is_done,
+  ).length
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">

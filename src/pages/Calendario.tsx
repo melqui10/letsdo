@@ -97,7 +97,11 @@ export function Calendario({ household }: { household: Household }) {
     const start = days[0]
     const end = new Date(days[days.length - 1])
     end.setHours(23, 59, 59, 999)
-    return groupByDay(expandOccurrences(activities, start, end))
+    // Agenda mostra compromissos + tarefas marcadas como "mostrar na agenda".
+    const agenda = activities.filter(
+      (a) => a.kind === 'compromisso' || a.show_in_agenda,
+    )
+    return groupByDay(expandOccurrences(agenda, start, end))
   }, [activities, days])
 
   const catColor = useCallback(
@@ -293,6 +297,7 @@ export function Calendario({ household }: { household: Household }) {
           members={members}
           categories={categories}
           defaultDueAt={editing ? undefined : defaultDueAt}
+          defaultKind={editing ? undefined : 'compromisso'}
           onCreateCategory={handleCreateCategory}
           onCancel={() => {
             setShowForm(false)

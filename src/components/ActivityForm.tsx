@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import type { Activity, Category, Priority, Profile } from '../types'
-import { CATEGORY_COLORS, CATEGORY_ICONS, PRIORITY_LABELS } from '../types'
+import type { Activity, ActivityKind, Category, Priority, Profile } from '../types'
+import {
+  ACTIVITY_KIND_LABELS,
+  CATEGORY_COLORS,
+  CATEGORY_ICONS,
+  PRIORITY_LABELS,
+} from '../types'
 import type { ActivityInput } from '../lib/activities'
 import { errMsg } from '../lib/errors'
 import {
@@ -20,6 +25,8 @@ interface Props {
   categories: Category[]
   // Data/hora inicial (ISO) ao criar — ex.: dia tocado no calendário.
   defaultDueAt?: string | null
+  // Tipo padrão ao criar (ex.: 'compromisso' quando aberto pela Agenda).
+  defaultKind?: ActivityKind
   onCreateCategory: (
     name: string,
     color: string,
@@ -44,10 +51,18 @@ export function ActivityForm({
   members,
   categories,
   defaultDueAt,
+  defaultKind,
   onCreateCategory,
   onCancel,
   onSubmit,
 }: Props) {
+  const [kind, setKind] = useState<ActivityKind>(
+    initial?.kind ?? defaultKind ?? 'tarefa',
+  )
+  const [endAt, setEndAt] = useState(toLocalInput(initial?.end_at ?? null))
+  const [showInAgenda, setShowInAgenda] = useState(
+    initial?.show_in_agenda ?? false,
+  )
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'media')
@@ -119,6 +134,13 @@ export function ActivityForm({
           due ?? undefined,
           weekdays,
         ),
+        kind,
+        end_at:
+          kind === 'compromisso' && endAt
+            ? new Date(endAt).toISOString()
+            : null,
+        // Compromisso sempre na agenda; tarefa só se o usuário marcar.
+        show_in_agenda: kind === 'compromisso' ? true : showInAgenda,
       })
     } finally {
       setSaving(false)
@@ -134,15 +156,37 @@ export function ActivityForm({
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
       >
         <h2 className="mb-3 text-lg font-semibold text-gray-900">
-          {initial ? 'Editar tarefa' : 'Nova tarefa'}
+          {initial ? 'Editar' : 'Novo'} {ACTIVITY_KIND_LABELS[kind].toLowerCase()}
         </h2>
 
         <div className="space-y-3">
+          {/* Tarefa (afazer) x Compromisso (evento na agenda) */}
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
+            {(Object.keys(ACTIVITY_KIND_LABELS) as ActivityKind[]).map((k) => (
+              <button
+                type="button"
+                key={k}
+                onClick={() => setKind(k)}
+                className={`rounded-md py-1.5 text-sm font-medium ${
+                  kind === k
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-500'
+                }`}
+              >
+                {ACTIVITY_KIND_LABELS[k]}
+              </button>
+            ))}
+          </div>
+
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="O que precisa ser feito?"
+            placeholder={
+              kind === 'compromisso'
+                ? 'Qual o compromisso?'
+                : 'O que precisa ser feito?'
+            }
             className={field}
           />
           <textarea
@@ -276,7 +320,13 @@ export function ActivityForm({
           <div className="text-sm">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-gray-600">
-                {allDay ? 'Data' : 'Data e hora'}
+                {kind === 'compromisso'
+                  ? allDay
+                    ? 'Início'
+                    : 'Início (data e hora)'
+                  : allDay
+                    ? 'Prazo'
+                    : 'Prazo (data e hora)'}
               </span>
               <label className="flex items-center gap-1.5 text-gray-600">
                 <input
@@ -299,6 +349,35 @@ export function ActivityForm({
               className={field}
             />
           </div>
+
+          {/* Fim do compromisso (opcional) */}
+          {kind === 'compromisso' && !allDay && (
+            <label className="block text-sm">
+              <span className="mb-1 block text-gray-600">Fim (opcional)</span>
+              <input
+                type="datetime-local"
+                value={endAt}
+                onChange={(e) => setEndAt(e.target.value)}
+                className={field}
+              />
+            </label>
+          )}
+
+          {/* Tarefa: aparecer ou não na agenda */}
+          {kind === 'tarefa' && (
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={showInAgenda}
+                onChange={(e) => setShowInAgenda(e.target.checked)}
+                className="h-4 w-4 accent-indigo-600"
+              />
+              Mostrar na agenda
+              {!dueAt && (
+                <span className="text-xs text-gray-400">(defina um prazo)</span>
+              )}
+            </label>
+          )}
 
           <div className="text-sm">
             {!creatingCat ? (
