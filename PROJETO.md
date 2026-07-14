@@ -175,8 +175,28 @@ O coração do app, utilizável no celular:
 - [x] **Tarefa × Compromisso** (migration `0007`): coluna `kind` + `end_at` + `show_in_agenda`. Agenda mostra compromissos + tarefas marcadas; Lista mostra só tarefas; FAB da Agenda cria compromisso.
 - [x] **Tema escuro** opcional (Claro/Escuro/Sistema) — `lib/theme.ts` + remapeamento CSS central sob `.dark`; Ajustes → Aparência.
 - [x] Toggle das notificações realinhado (layout flex).
-- [ ] **Aplicar migration `0007` no remoto** (`npx supabase db push`) — pendente (você).
-- [ ] **Agendador `pg_cron`** para "resumo diário" e "antes de evento" (os toggles existem; falta quem dispara nos horários).
+- [x] **Aplicar migration `0007` no remoto** (`npx supabase db push`) ✅.
+- [x] **Agendador `pg_cron`** para "resumo diário" e "antes de evento" (migration `0008`, ver log de 2026-07-14 abaixo) ✅.
+
+### 2026-07-14 (pg_cron — lembretes agendados)
+- [x] Migration `0008_pg_cron.sql`: agendamento dos pushes com **hora marcada** (o trigger de "atividade do lar" só cobria o push imediato).
+- [x] Tabela `push_log` (`dedup_key` único) garante idempotência — cada lembrete sai uma vez só.
+- [x] `run_event_reminders()` (job `letsdo-event-reminders`, `*/5`): lembrete `before_event` respeitando o `before_event_minutes` de cada pessoa; envia por `profile_id`.
+- [x] `run_daily_digest()` (job `letsdo-daily-digest`, `*/5`): resumo diário no `daily_time` (fuso America/Sao_Paulo) com a contagem de itens que vencem hoje.
+- [x] `letsdo-push-log-cleanup` (domingo 03h): apaga logs com +30 dias.
+- [x] Revisão (revisor) + correções: dedup atômico (`if not found then continue`), `revoke execute` das funções (senão ficariam expostas como RPC no PostgREST), janela do resumo diário à prova de meia-noite.
+- [x] `npx supabase db push` aplicado no remoto ✅.
+- [ ] **Testar ponta a ponta** (você): ativar toggle, criar compromisso próximo, aguardar o tick. Diagnóstico em `cron.job_run_details` e `net._http_response`.
+
+### 2026-07-14 (Fase 5 — Gamificação)
+- [x] Migration `0009_gamification.sql`: ledger imutável `score_events` + coluna `activities.completed_at` + trigger `award_score` (pontua no servidor a cada conclusão) + RLS + índice único parcial anti-duplicata.
+- [x] Fórmula: base por prioridade (baixa5/media10/alta20/urgente30) × fator (no prazo 1,5 · sem prazo 1,0 · atrasada 0,5). **Quem conclui pontua** (`auth.uid()`), não o responsável.
+- [x] **Só tarefas pontuam** (compromissos marcam `completed_at`, mas não entram na gamificação) — decisão da revisão; trivial reverter se quiser incluir compromissos.
+- [x] `src/lib/score.ts`: agregações puras (pontos semana/total, streak, níveis, conquistas) sobre `score_events`, tudo no fuso America/Sao_Paulo.
+- [x] `src/pages/Placar.tsx`: aba 🏆 Placar (5ª no menu) — você vs esposa, pontos da semana, total, nível+barra, streak 🔥, grade de conquistas, Realtime ligado.
+- [x] Placar semanal (segunda→domingo) + total histórico; níveis Aprendiz→Lenda; 9 conquistas.
+- [x] Revisão (revisor): corrigido rótulo de semana congelado e restrição a `kind='tarefa'`; build (`npm run build`) limpo.
+- [ ] **Aplicar `0009` no remoto** (`npx supabase db push`) + **deploy do front** (`git push`) — pendente.
 
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).

@@ -4,11 +4,12 @@ import { Login } from './pages/Login'
 import { Onboarding } from './pages/Onboarding'
 import { ListaTarefas } from './pages/ListaTarefas'
 import { Calendario } from './pages/Calendario'
+import { Placar } from './pages/Placar'
 import { Configuracoes } from './pages/Configuracoes'
 import { ensureProfile, getMyHouseholds } from './lib/household'
 import type { Household } from './types'
 
-type Tab = 'lista' | 'calendario' | 'kanban' | 'ajustes'
+type Tab = 'lista' | 'calendario' | 'kanban' | 'placar' | 'ajustes'
 
 function Splash() {
   return (
@@ -33,6 +34,7 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     { key: 'lista', label: 'Lista', icon: '📋' },
     { key: 'calendario', label: 'Agenda', icon: '📅' },
     { key: 'kanban', label: 'Quadro', icon: '🗂️' },
+    { key: 'placar', label: 'Placar', icon: '🏆' },
     { key: 'ajustes', label: 'Ajustes', icon: '⚙️' },
   ]
   return (
@@ -87,6 +89,7 @@ function Shell() {
       {tab === 'lista' && <ListaTarefas household={household} />}
       {tab === 'calendario' && <Calendario household={household} />}
       {tab === 'kanban' && <Placeholder title="Quadro Kanban" />}
+      {tab === 'placar' && <Placar household={household} />}
       {tab === 'ajustes' && <Configuracoes onSignOut={signOut} />}
       <BottomNav tab={tab} setTab={setTab} />
     </div>

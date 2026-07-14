@@ -83,8 +83,26 @@ export interface Activity {
   end_at: string | null
   show_in_agenda: boolean
   created_by: string | null
+  completed_at: string | null
   created_at: string
   updated_at: string
+}
+
+// Tipo de evento no livro-razão de pontos (gamificação).
+export type ScoreEventType = 'conclusao' | 'bonus'
+
+// Espelha `public.score_events`: um lançamento imutável por conclusão.
+export interface ScoreEvent {
+  id: number
+  household_id: string
+  profile_id: string
+  activity_id: string | null
+  event_type: ScoreEventType
+  points: number
+  priority: Priority | null
+  on_time: boolean | null
+  event_day: string // YYYY-MM-DD (fuso America/Sao_Paulo)
+  created_at: string
 }
 
 // Preferências de notificação push (por usuário).
