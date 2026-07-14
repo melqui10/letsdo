@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { NotificationPrefs } from '../types'
 import { useAuth } from '../lib/AuthContext'
 import { getMyProfile, updateDisplayName } from '../lib/household'
+import { getTheme, setTheme, type Theme } from '../lib/theme'
 import { errMsg } from '../lib/errors'
 import {
   disablePush,
@@ -53,6 +54,12 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
   const [name, setName] = useState('')
   const [savedName, setSavedName] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
+  const [theme, setThemeState] = useState<Theme>(getTheme())
+
+  const changeTheme = (t: Theme) => {
+    setTheme(t)
+    setThemeState(t)
+  }
 
   const iosNeedsInstall = isIos() && !isStandalone()
   const denied = pushSupported() && permission() === 'denied'
@@ -123,6 +130,32 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
             {error}
           </div>
         )}
+
+        <section>
+          <h2 className="mb-2 text-sm font-semibold text-gray-500">Aparência</h2>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1">
+            {(
+              [
+                ['light', '☀️ Claro'],
+                ['dark', '🌙 Escuro'],
+                ['system', '⚙️ Sistema'],
+              ] as [Theme, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => changeTheme(value)}
+                className={`rounded-lg py-2 text-sm font-medium ${
+                  theme === value
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-500'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section>
           <h2 className="mb-2 text-sm font-semibold text-gray-500">Perfil</h2>

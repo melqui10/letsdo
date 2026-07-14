@@ -13,3 +13,60 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Habilita a variante `dark:` baseada na classe .dark no <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Tema escuro — remapeia as superfícies/textos claros quando .dark está ativo.
+   Feito centralizado (em vez de dark: em cada componente) para cobrir todo o
+   app sem espalhar classes. Regras fora de @layer vencem as utilitárias.
+--------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark; /* deixa date/time pickers, checkbox e scrollbar escuros */
+}
+.dark body {
+  background-color: #0b0f19;
+  color: #e5e7eb;
+}
+
+/* Fundos */
+.dark .bg-white { background-color: #1f2937; }
+.dark .bg-gray-50 { background-color: #0b0f19; }
+.dark .bg-gray-100 { background-color: #374151; }
+.dark .bg-gray-300 { background-color: #4b5563; }
+.dark .bg-indigo-50 { background-color: #1e1b4b; }
+.dark .bg-indigo-100 { background-color: #312e81; }
+.dark .bg-red-50 { background-color: #3f1d1d; }
+.dark .bg-red-100 { background-color: #7f1d1d; }
+.dark .bg-amber-50 { background-color: #422006; }
+
+/* Textos */
+.dark .text-gray-900 { color: #f3f4f6; }
+.dark .text-gray-800 { color: #e5e7eb; }
+.dark .text-gray-700 { color: #d1d5db; }
+.dark .text-gray-600 { color: #c3cad4; }
+.dark .text-gray-500 { color: #a3aab5; }
+.dark .text-gray-400 { color: #8b93a1; }
+.dark .text-gray-300 { color: #6b7280; }
+.dark .text-indigo-600 { color: #a5b4fc; }
+.dark .text-indigo-700 { color: #c7d2fe; }
+.dark .text-red-700,
+.dark .text-red-600,
+.dark .text-red-500 { color: #fca5a5; }
+.dark .text-amber-800 { color: #fcd34d; }
+
+/* Bordas e anéis */
+.dark .border-gray-300,
+.dark .border-gray-200 { border-color: #374151; }
+.dark .ring-gray-400 { --tw-ring-color: #4b5563; }
+
+/* Campos de formulário */
+.dark input,
+.dark textarea,
+.dark select {
+  color: #e5e7eb;
+  background-color: #111827;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #6b7280; }
