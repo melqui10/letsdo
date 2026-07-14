@@ -5,6 +5,7 @@ import type { ActivityInput } from '../lib/activities'
 import { errMsg } from '../lib/errors'
 import {
   buildRecurrenceRule,
+  describeMonthlyWeekday,
   RECURRENCE_LABELS,
   recurrenceOptionFromRule,
   WEEKDAY_LABELS,
@@ -238,6 +239,14 @@ export function ActivityForm({
                 ))}
               </div>
             </div>
+          )}
+
+          {recurrence === 'mensal_dia_semana' && (
+            <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+              {dueAt
+                ? describeMonthlyWeekday(new Date(dueAt))
+                : 'Escolha uma data abaixo para definir a posição no mês.'}
+            </p>
           )}
 
           <div className="text-sm">

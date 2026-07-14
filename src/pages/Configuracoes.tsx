@@ -31,12 +31,12 @@ function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
         checked ? 'bg-indigo-600' : 'bg-gray-300'
       } disabled:opacity-40`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
           checked ? 'translate-x-5' : 'translate-x-0.5'
         }`}
       />

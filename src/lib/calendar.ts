@@ -14,7 +14,11 @@ import {
   startOfWeek,
 } from 'date-fns'
 import type { Activity } from '../types'
-import { recurrenceOptionFromRule, weekdaysFromRule } from './recurrence'
+import {
+  monthlyWeekdayFromRule,
+  recurrenceOptionFromRule,
+  weekdaysFromRule,
+} from './recurrence'
 
 // Semana começando no domingo (padrão pt-BR).
 const WEEK_OPTS = { weekStartsOn: 0 as const }
@@ -50,6 +54,31 @@ const DIFF = {
   mensal: differenceInCalendarMonths,
 }
 
+// A data da n-ésima ocorrência de `weekday` (getDay) no mês de `monthStart`.
+// `nth`: 1..4 ou -1 (última). Null se não existir (ex.: 5ª sem 5 semanas).
+function nthWeekdayOfMonth(
+  monthStart: Date,
+  weekday: number,
+  nth: number,
+): Date | null {
+  const year = monthStart.getFullYear()
+  const month = monthStart.getMonth()
+  const daysInMonth = endOfMonth(monthStart).getDate()
+  if (nth === -1) {
+    for (let day = daysInMonth; day >= 1; day--) {
+      const dt = new Date(year, month, day)
+      if (dt.getDay() === weekday) return dt
+    }
+    return null
+  }
+  let count = 0
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dt = new Date(year, month, day)
+    if (dt.getDay() === weekday && ++count === nth) return dt
+  }
+  return null
+}
+
 // Ocorrências de UMA atividade dentro do intervalo [rangeStart, rangeEnd].
 function occurrencesFor(a: Activity, rangeStart: Date, rangeEnd: Date): Date[] {
   if (!a.due_at) return []
@@ -75,6 +104,28 @@ function occurrencesFor(a: Activity, rangeStart: Date, rangeEnd: Date): Date[] {
         if (occ >= base && occ >= rangeStart && occ <= rangeEnd) out.push(occ)
       }
       d = addDays(d, 1)
+      guard++
+    }
+    return out
+  }
+
+  // Mensal por dia da semana (ex.: 1ª segunda): percorre mês a mês e emite a
+  // ocorrência na posição certa, no mesmo horário da data original.
+  if (opt === 'mensal_dia_semana') {
+    const info = monthlyWeekdayFromRule(a.recurrence_rule)
+    if (!info) return []
+    const out: Date[] = []
+    let m = startOfMonth(base > rangeStart ? base : rangeStart)
+    const lastMonth = startOfMonth(rangeEnd)
+    let guard = 0
+    while (m <= lastMonth && guard < 24) {
+      const day = nthWeekdayOfMonth(m, info.weekday, info.nth)
+      if (day) {
+        const occ = new Date(day)
+        occ.setHours(base.getHours(), base.getMinutes(), 0, 0)
+        if (occ >= base && occ >= rangeStart && occ <= rangeEnd) out.push(occ)
+      }
+      m = addMonths(m, 1)
       guard++
     }
     return out

@@ -6,13 +6,40 @@ export type RecurrenceOption =
   | 'semanal'
   | 'dias_semana'
   | 'mensal'
+  | 'mensal_dia_semana'
 
 export const RECURRENCE_LABELS: Record<RecurrenceOption, string> = {
   nenhuma: 'Não repete',
   diaria: 'Diariamente',
   semanal: 'Semanalmente',
   dias_semana: 'Dias da semana',
-  mensal: 'Mensalmente',
+  mensal: 'Mensalmente (mesmo dia do mês)',
+  mensal_dia_semana: 'Mensalmente (por dia da semana)',
+}
+
+// Nomes por extenso indexados por getDay() (0 = domingo).
+const WEEKDAY_FULL = [
+  'domingo',
+  'segunda-feira',
+  'terça-feira',
+  'quarta-feira',
+  'quinta-feira',
+  'sexta-feira',
+  'sábado',
+]
+const ORDINALS = ['', '1ª', '2ª', '3ª', '4ª', 'última']
+
+// Qual posição no mês (1..4, ou -1 = última) a data ocupa para seu dia da semana.
+function nthOfMonth(date: Date): number {
+  const nth = Math.ceil(date.getDate() / 7)
+  return nth > 4 ? -1 : nth
+}
+
+// Descrição legível: "Toda 1ª segunda-feira do mês".
+export function describeMonthlyWeekday(date: Date): string {
+  const nth = nthOfMonth(date)
+  const ord = nth === -1 ? 'última' : ORDINALS[nth]
+  return `Toda ${ord} ${WEEKDAY_FULL[date.getDay()]} do mês`
 }
 
 // Rótulos curtos indexados por getDay() (0 = domingo … 6 = sábado).
@@ -48,6 +75,17 @@ export function buildRecurrenceRule(
     return rule.toString()
   }
 
+  // Mensal por dia da semana: "1ª segunda", "última sexta"… derivado da data.
+  if (option === 'mensal_dia_semana') {
+    const d = start ?? new Date()
+    const rule = new RRule({
+      freq: RRule.MONTHLY,
+      byweekday: [JS_TO_RRULE[d.getDay()].nth(nthOfMonth(d))],
+      dtstart: d,
+    })
+    return rule.toString()
+  }
+
   const freq = {
     diaria: RRule.DAILY,
     semanal: RRule.WEEKLY,
@@ -62,6 +100,14 @@ export function recurrenceOptionFromRule(rule: string | null): RecurrenceOption 
   if (!rule) return 'nenhuma'
   try {
     const opts = RRule.fromString(rule).options
+    // Mensal com posição (ex.: +1MO) vem em bynweekday.
+    if (
+      opts.freq === RRule.MONTHLY &&
+      Array.isArray(opts.bynweekday) &&
+      opts.bynweekday.length > 0
+    ) {
+      return 'mensal_dia_semana'
+    }
     if (
       opts.freq === RRule.WEEKLY &&
       Array.isArray(opts.byweekday) &&
@@ -102,4 +148,23 @@ export function weekdaysFromRule(rule: string | null): number[] {
     return []
   }
   return []
+}
+
+// Posição + dia da semana de uma RRULE mensal com BYDAY posicional (ex.: +1MO).
+// `nth`: 1..4 ou -1 (última); `weekday`: getDay() (0=dom..6=sáb). Null se não aplicável.
+export function monthlyWeekdayFromRule(
+  rule: string | null,
+): { nth: number; weekday: number } | null {
+  if (!rule) return null
+  try {
+    const opts = RRule.fromString(rule).options
+    const byn = opts.bynweekday
+    if (opts.freq === RRule.MONTHLY && Array.isArray(byn) && byn.length > 0) {
+      const [wd, n] = byn[0] // [dia rrule (0=seg), posição]
+      return { nth: n, weekday: (wd + 1) % 7 }
+    }
+  } catch {
+    return null
+  }
+  return null
 }
