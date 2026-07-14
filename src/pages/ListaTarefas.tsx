@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { getHouseholdMembers } from '../lib/household'
 import { createCategory, listCategories } from '../lib/categories'
 import { errMsg } from '../lib/errors'
+import { todaySP } from '../lib/score'
 import {
   createActivity,
   deleteActivity,
@@ -96,8 +97,15 @@ export function ListaTarefas({ household }: { household: Household }) {
   }, [household.id, load])
 
   const visible = useMemo(() => {
+    const hoje = todaySP()
     // A Lista é de tarefas; compromissos vivem na Agenda.
     let list = activities.filter((a) => a.kind !== 'compromisso')
+    // Oculta tarefas concluídas em dias anteriores; mantém as concluídas hoje.
+    list = list.filter(
+      (a) =>
+        !a.is_done ||
+        (a.completed_at != null && todaySP(new Date(a.completed_at)) === hoje),
+    )
     if (filter === 'minhas')
       list = list.filter((a) => a.assignee_id === user?.id)
     if (filter === 'pendentes') list = list.filter((a) => !a.is_done)
