@@ -198,6 +198,12 @@ O coração do app, utilizável no celular:
 - [x] Revisão (revisor): corrigido rótulo de semana congelado e restrição a `kind='tarefa'`; build (`npm run build`) limpo.
 - [ ] **Aplicar `0009` no remoto** (`npx supabase db push`) + **deploy do front** (`git push`) — pendente.
 
+### 2026-07-14 (Ajustes de UX + marca)
+- [x] **Lista oculta concluídas de dias anteriores**: usa `activities.completed_at` (fuso America/Sao_Paulo) — tarefa concluída some no dia seguinte; concluídas hoje continuam visíveis (`ListaTarefas.tsx`, reusa `todaySP` de `score.ts`).
+- [x] **Nome de exibição → "Let's Do!"** (repo/código seguem `letsdo`): título da aba, manifest PWA (`name`/`short_name`), tela de login, ajuda das Configurações, fallback de push e resumo diário (migration `0010_rename_push_titles.sql`). Chave interna `letsdo:theme` mantida.
+- [x] **GateGuard desligado no projeto** via `.claude/settings.json` (`ECC_DISABLED_HOOKS`) — passa a valer ao reiniciar a sessão.
+- [ ] PWA já instalado pode manter o nome antigo no ícone até remover/re-adicionar à tela inicial (o SO só relê o manifest numa nova instalação).
+
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).
 - Policies de UPDATE/DELETE em `households` (renomear/excluir lar).
