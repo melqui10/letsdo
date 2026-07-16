@@ -8,11 +8,13 @@ import { getHouseholdMembers } from '../lib/household'
 import { errMsg } from '../lib/errors'
 import {
   BADGES,
+  coupleStatsForProfile,
   earnedBadges,
   fetchScoreEvents,
   levelFor,
   mondaySP,
   statsForProfile,
+  type CoupleStats,
   type ProfileStats,
 } from '../lib/score'
 
@@ -110,6 +112,17 @@ export function Placar({ household }: { household: Household }) {
     return map
   }, [members, events])
 
+  // Conquistas de casal (campeão da semana, dupla dinâmica etc.) comparam os
+  // eventos de todos os membros, por isso ficam fora de statsForProfile.
+  const coupleByProfile = useMemo(() => {
+    const memberIds = members.map((m) => m.id)
+    const map = new Map<string, CoupleStats>()
+    for (const m of members) {
+      map.set(m.id, coupleStatsForProfile(events, m.id, memberIds))
+    }
+    return map
+  }, [members, events])
+
   // Líder da semana: quem tem mais pontos, só quando não há empate no topo.
   const leaderId = useMemo(() => {
     let best: { id: string; points: number } | null = null
@@ -130,8 +143,9 @@ export function Placar({ household }: { household: Household }) {
   const activeBadgeId = badgeProfileId ?? members[0]?.id ?? null
   const earnedIds = useMemo(() => {
     const stats = activeBadgeId ? statsByProfile.get(activeBadgeId) : undefined
-    return new Set(stats ? earnedBadges(stats).map((b) => b.id) : [])
-  }, [activeBadgeId, statsByProfile])
+    const couple = activeBadgeId ? coupleByProfile.get(activeBadgeId) : undefined
+    return new Set(stats ? earnedBadges(stats, couple).map((b) => b.id) : [])
+  }, [activeBadgeId, statsByProfile, coupleByProfile])
 
   const hasAnyCompletion = events.some((e) => e.event_type === 'conclusao')
 

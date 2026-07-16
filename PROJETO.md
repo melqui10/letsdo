@@ -196,13 +196,19 @@ O coração do app, utilizável no celular:
 - [x] `src/pages/Placar.tsx`: aba 🏆 Placar (5ª no menu) — você vs esposa, pontos da semana, total, nível+barra, streak 🔥, grade de conquistas, Realtime ligado.
 - [x] Placar semanal (segunda→domingo) + total histórico; níveis Aprendiz→Lenda; 9 conquistas.
 - [x] Revisão (revisor): corrigido rótulo de semana congelado e restrição a `kind='tarefa'`; build (`npm run build`) limpo.
-- [ ] **Aplicar `0009` no remoto** (`npx supabase db push`) + **deploy do front** (`git push`) — pendente.
+- [x] **Aplicar `0009` no remoto** (`npx supabase db push`) + **deploy do front** (`git push`) — feito em 2026-07-16.
 
 ### 2026-07-14 (Ajustes de UX + marca)
 - [x] **Lista oculta concluídas de dias anteriores**: usa `activities.completed_at` (fuso America/Sao_Paulo) — tarefa concluída some no dia seguinte; concluídas hoje continuam visíveis (`ListaTarefas.tsx`, reusa `todaySP` de `score.ts`).
 - [x] **Nome de exibição → "Let's Do!"** (repo/código seguem `letsdo`): título da aba, manifest PWA (`name`/`short_name`), tela de login, ajuda das Configurações, fallback de push e resumo diário (migration `0010_rename_push_titles.sql`). Chave interna `letsdo:theme` mantida.
 - [x] **GateGuard desligado no projeto** via `.claude/settings.json` (`ECC_DISABLED_HOOKS`) — passa a valer ao reiniciar a sessão.
 - [ ] PWA já instalado pode manter o nome antigo no ícone até remover/re-adicionar à tela inicial (o SO só relê o manifest numa nova instalação).
+
+### 2026-07-15 (Gamificação — mais conquistas)
+- [x] Migration `0011_score_assignee.sql`: congela `assignee_id` em `score_events` (recria `award_score`) — base da conquista "Herói do outro".
+- [x] `score.ts`: 9 → 29 conquistas. Novas stats por perfil (horário SP via `created_at`, dia da semana, semana perfeita, mês pontual fechado, sequências p/ Fênix, contador de herói) + `coupleStatsForProfile` (semanas vencidas, dias em dupla, semana equilibrada <10%, virada pós-sexta) — só semanas/meses FECHADOS contam nas conquistas históricas.
+- [x] `Placar.tsx`: passa as stats de casal para `earnedBadges`; grade de conquistas exibe as 29.
+- [x] Migrations aplicadas no remoto em 2026-07-16 (`npx supabase db push` — `0011`; `0009`/`0010` já estavam) + deploy do front via `git push`.
 
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).

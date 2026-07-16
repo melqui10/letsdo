@@ -102,6 +102,7 @@ export interface ScoreEvent {
   priority: Priority | null
   on_time: boolean | null
   event_day: string // YYYY-MM-DD (fuso America/Sao_Paulo)
+  assignee_id: string | null // responsável no momento da conclusão (congelado)
   created_at: string
 }
 
