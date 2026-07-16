@@ -70,3 +70,84 @@ body {
 }
 .dark input::placeholder,
 .dark textarea::placeholder { color: #6b7280; }
+
+/* ---------------------------------------------------------------------------
+   Animações de conclusão de tarefa (ActivityCard)
+--------------------------------------------------------------------------- */
+
+/* Círculo do check "estoura" ao concluir */
+@keyframes check-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.check-pop {
+  animation: check-pop 0.45s cubic-bezier(0.36, 1.6, 0.4, 1);
+}
+
+/* O ✓ é desenhado com traço animado (SVG stroke) */
+@keyframes check-draw {
+  from { stroke-dashoffset: 20; }
+  to   { stroke-dashoffset: 0; }
+}
+.check-draw {
+  stroke-dasharray: 20;
+  animation: check-draw 0.25s ease-out 0.1s backwards;
+}
+
+/* Risco do título: pseudo-elemento (permite animar a largura, ao contrário
+   de text-decoration: line-through) */
+.title-strike {
+  position: relative;
+}
+.title-strike::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+@keyframes strike-grow {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+.title-strike-anim::after {
+  animation: strike-grow 0.35s ease-out 0.1s backwards;
+}
+
+/* Toast "+X pts" flutuando a partir do checkbox. O translate(-50%) de
+   centralização vive dentro dos keyframes porque transform é sobrescrito
+   pela animação. */
+.pts-float {
+  position: absolute;
+  left: 50%;
+  top: -1.5rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  animation: pts-float 1.2s ease-out forwards;
+}
+@keyframes pts-float {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+  15%  { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+  30%  { transform: translate(-50%, -2px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -26px) scale(1); }
+}
+
+/* Acessibilidade: sem movimento para quem prefere reduzido. O toast de
+   pontos continua aparecendo (estático, some ao ser removido do DOM). */
+@media (prefers-reduced-motion: reduce) {
+  .check-pop,
+  .check-draw,
+  .title-strike-anim::after {
+    animation: none;
+  }
+  .pts-float {
+    animation: none;
+    transform: translate(-50%, 0);
+  }
+}

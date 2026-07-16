@@ -210,6 +210,11 @@ O coração do app, utilizável no celular:
 - [x] `Placar.tsx`: passa as stats de casal para `earnedBadges`; grade de conquistas exibe as 29.
 - [x] Migrations aplicadas no remoto em 2026-07-16 (`npx supabase db push` — `0011`; `0009`/`0010` já estavam) + deploy do front via `git push`.
 
+### 2026-07-16 (Animações de conclusão)
+- [x] `ActivityCard.tsx`: conclusão animada — check SVG com traço desenhado + bounce, risco progressivo no título, toast "+X pts" flutuante, vibração (35ms) e visual otimista; celebração só de "aberta → concluída" (guard anti-clique-duplo, timers cancelados).
+- [x] `score.ts`: `estimatePoints()` espelha o trigger `award_score` (base × fator prazo, só `kind='tarefa'`) para o toast.
+- [x] `index.css`: keyframes `check-pop`/`check-draw`/`strike-grow`/`pts-float` + `prefers-reduced-motion`. Revisão (revisor) ok; build limpo.
+
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).
 - Policies de UPDATE/DELETE em `households` (renomear/excluir lar).

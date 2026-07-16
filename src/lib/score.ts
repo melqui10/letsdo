@@ -16,6 +16,25 @@ export const BASE_POINTS: Record<Priority, number> = {
   urgente: 30,
 }
 
+// Estimativa dos pontos que uma conclusão renderia AGORA — espelha o trigger
+// `award_score` (migration 0011). O valor real é gravado pelo banco; isto é
+// só feedback imediato de UI (toast "+X pts" ao concluir).
+export function estimatePoints(a: {
+  kind: string
+  priority: Priority
+  due_at: string | null
+}): number {
+  if (a.kind !== 'tarefa') return 0
+  const base = BASE_POINTS[a.priority]
+  const factor =
+    a.due_at === null
+      ? 1.0
+      : Date.now() <= new Date(a.due_at).getTime()
+        ? 1.5
+        : 0.5
+  return Math.round(base * factor)
+}
+
 export interface Level {
   level: number
   min: number
