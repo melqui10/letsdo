@@ -23,6 +23,7 @@ import {
   type ActivityInput,
 } from '../lib/activities'
 import {
+  buildMonthAgendaText,
   dayKey,
   expandOccurrences,
   groupByDay,
@@ -149,6 +150,34 @@ export function Calendario({ household }: { household: Household }) {
     return d.toISOString()
   }, [selected])
 
+  // Exporta os compromissos do mês visível como texto e abre o compartilhamento
+  // (WhatsApp via wa.me, ou o menu nativo se disponível; senão, copia).
+  const [shareMsg, setShareMsg] = useState<string | null>(null)
+  const handleExport = async () => {
+    const text = buildMonthAgendaText(cursor, activities, members, categories)
+    try {
+      if (navigator.share) {
+        await navigator.share({ text })
+        return
+      }
+    } catch {
+      // Usuário cancelou o menu nativo — segue para o fallback do WhatsApp.
+    }
+    const opened = window.open(
+      `https://wa.me/?text=${encodeURIComponent(text)}`,
+      '_blank',
+    )
+    if (!opened) {
+      try {
+        await navigator.clipboard.writeText(text)
+        setShareMsg('Compromissos copiados para a área de transferência.')
+      } catch {
+        setShareMsg('Não foi possível compartilhar.')
+      }
+      setTimeout(() => setShareMsg(null), 3000)
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
       <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 py-3 shadow-sm">
@@ -243,8 +272,22 @@ export function Calendario({ household }: { household: Household }) {
         </div>
       </div>
 
+      {/* Exportar compromissos do mês para o WhatsApp */}
+      <div className="mt-2 px-4">
+        <button
+          onClick={handleExport}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white py-2 text-sm font-medium text-gray-700 shadow-sm active:bg-gray-50"
+        >
+          <span aria-hidden>📲</span>
+          Exportar compromissos do mês
+        </button>
+        {shareMsg && (
+          <p className="mt-1.5 text-center text-xs text-gray-500">{shareMsg}</p>
+        )}
+      </div>
+
       {/* Painel do dia selecionado */}
-      <div className="mt-2 flex items-center justify-between px-4">
+      <div className="mt-3 flex items-center justify-between px-4">
         <h2 className="text-sm font-semibold text-gray-700">
           {capitalize(
             format(selected, "EEEE, dd 'de' MMMM", { locale: ptBR }),

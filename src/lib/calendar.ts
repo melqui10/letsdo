@@ -9,11 +9,13 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isSameDay,
   startOfDay,
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import type { Activity } from '../types'
+import { ptBR } from 'date-fns/locale'
+import type { Activity, Category, Profile } from '../types'
 import {
   monthlyWeekdayFromRule,
   recurrenceOptionFromRule,
@@ -86,6 +88,26 @@ function occurrencesFor(a: Activity, rangeStart: Date, rangeEnd: Date): Date[] {
   const opt = recurrenceOptionFromRule(a.recurrence_rule)
 
   if (opt === 'nenhuma') {
+    // Compromisso de vários dias (fim em outro dia): ocupa cada dia do
+    // intervalo. O 1º dia mantém o horário de início; os demais começam à
+    // meia-noite (aparecem no topo, como o evento "em andamento" do dia).
+    if (a.end_at) {
+      const end = new Date(a.end_at)
+      if (end > base && differenceInCalendarDays(end, base) >= 1) {
+        const out: Date[] = []
+        const lastDay = startOfDay(end)
+        let d = startOfDay(base)
+        let guard = 0
+        while (d <= lastDay && guard < 400) {
+          if (d >= startOfDay(rangeStart) && d <= rangeEnd) {
+            out.push(differenceInCalendarDays(d, base) === 0 ? new Date(base) : new Date(d))
+          }
+          d = addDays(d, 1)
+          guard++
+        }
+        return out
+      }
+    }
     return base >= rangeStart && base <= rangeEnd ? [base] : []
   }
 
@@ -158,6 +180,73 @@ export function expandOccurrences(
     }
   }
   return out
+}
+
+// Rótulo de horário de uma ocorrência para o texto de export.
+// Considera dia inteiro e compromissos que se estendem por vários dias.
+function occurrenceTimeLabel(occ: Occurrence): string {
+  const a = occ.activity
+  if (a.is_all_day) return 'Dia inteiro'
+  if (!a.due_at) return ''
+  const start = new Date(a.due_at)
+  const end = a.end_at ? new Date(a.end_at) : null
+  // Compromisso de vários dias: distingue início, meio e fim.
+  if (end && differenceInCalendarDays(end, start) >= 1) {
+    if (!isSameDay(occ.date, start)) {
+      return isSameDay(occ.date, end)
+        ? `até ${format(end, 'HH:mm')}`
+        : 'o dia todo'
+    }
+    return `a partir de ${format(start, 'HH:mm')}`
+  }
+  const startTxt = format(start, 'HH:mm')
+  if (end && isSameDay(end, start)) return `${startTxt}–${format(end, 'HH:mm')}`
+  return startTxt
+}
+
+// Monta um texto (pt-BR) com os compromissos do mês do `cursor`, pronto para
+// enviar via WhatsApp. Agrupa por dia e lista horário, título e responsável.
+export function buildMonthAgendaText(
+  cursor: Date,
+  activities: Activity[],
+  members: Profile[],
+  categories: Category[],
+): string {
+  const monthStart = startOfMonth(cursor)
+  const monthEnd = endOfMonth(cursor)
+  monthEnd.setHours(23, 59, 59, 999)
+
+  const agenda = activities.filter(
+    (a) => a.kind === 'compromisso' || a.show_in_agenda,
+  )
+  const byDay = groupByDay(expandOccurrences(agenda, monthStart, monthEnd))
+
+  const titulo = format(cursor, "MMMM 'de' yyyy", { locale: ptBR })
+  const header = `📅 *Compromissos de ${titulo.charAt(0).toUpperCase()}${titulo.slice(1)}*`
+
+  const dias = eachDayOfInterval({ start: monthStart, end: endOfMonth(cursor) })
+  const blocos: string[] = []
+  for (const dia of dias) {
+    const itens = byDay.get(dayKey(dia))
+    if (!itens || itens.length === 0) continue
+    const cabecalho = format(dia, "EEEE, dd/MM", { locale: ptBR })
+    const linhas = itens.map((occ) => {
+      const hora = occurrenceTimeLabel(occ)
+      const cat = categories.find((c) => c.id === occ.activity.category_id)
+      const resp = members.find((m) => m.id === occ.activity.assignee_id)
+      const partes = [hora, occ.activity.title].filter(Boolean).join(' — ')
+      const extras = [cat?.icon && cat.name ? `${cat.icon} ${cat.name}` : cat?.name, resp?.display_name]
+        .filter(Boolean)
+        .join(' · ')
+      return `• ${partes}${extras ? ` (${extras})` : ''}`
+    })
+    blocos.push(
+      `*${cabecalho.charAt(0).toUpperCase()}${cabecalho.slice(1)}*\n${linhas.join('\n')}`,
+    )
+  }
+
+  if (blocos.length === 0) return `${header}\n\nNenhum compromisso neste mês.`
+  return `${header}\n\n${blocos.join('\n\n')}`
 }
 
 // Agrupa ocorrências por dia (yyyy-MM-dd), ordenadas por horário dentro do dia.

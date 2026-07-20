@@ -215,6 +215,12 @@ O coração do app, utilizável no celular:
 - [x] `score.ts`: `estimatePoints()` espelha o trigger `award_score` (base × fator prazo, só `kind='tarefa'`) para o toast.
 - [x] `index.css`: keyframes `check-pop`/`check-draw`/`strike-grow`/`pts-float` + `prefers-reduced-motion`. Revisão (revisor) ok; build limpo.
 
+### 2026-07-20 (Agenda — export WhatsApp + correção multi-dia)
+- [x] **Correção multi-dia** (`src/lib/calendar.ts`): compromisso com `end_at` em outro dia agora ocupa **todos os dias** do intervalo (antes só o dia de início aparecia). 1º dia mantém o horário; dias seguintes entram à meia-noite (topo da agenda, "em andamento"). Range parcial validado (mês que começa no meio do compromisso mostra os dias restantes).
+- [x] **Export de compromissos do mês** (`buildMonthAgendaText` em `calendar.ts` + botão em `Calendario.tsx`): gera texto pt-BR agrupado por dia (horário/dia inteiro/vários dias, título, categoria, responsável). Botão "📲 Exportar compromissos do mês" usa `navigator.share` → fallback `wa.me/?text=` → fallback copiar para área de transferência.
+- [x] Typecheck limpo (`tsc --noEmit`).
+- [ ] **Limitação**: evento marcado "Dia inteiro" ainda não permite data de fim no formulário — multi-dia só via compromisso com hora. Habilitar fim no modo dia inteiro é um próximo passo se necessário.
+
 ### Pendências técnicas registradas na revisão (fases futuras)
 - Restringir `assignee_id` a membros do mesmo lar (hoje só valida via UI).
 - Policies de UPDATE/DELETE em `households` (renomear/excluir lar).
