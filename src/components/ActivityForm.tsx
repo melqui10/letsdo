@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import type { Activity, ActivityKind, Category, Priority, Profile } from '../types'
 import {
   ACTIVITY_KIND_LABELS,
@@ -13,9 +13,8 @@ import {
   describeMonthlyWeekday,
   RECURRENCE_LABELS,
   RECURRENCE_MENU,
-  recurrenceOptionFromRule,
+  recurrenceFormState,
   WEEKDAY_LABELS,
-  weekdaysFromRule,
   type RecurrenceOption,
 } from '../lib/recurrence'
 
@@ -72,21 +71,28 @@ export function ActivityForm({
     toLocalInput(initial?.due_at ?? defaultDueAt ?? null),
   )
   const [allDay, setAllDay] = useState(initial?.is_all_day ?? false)
-  const [recurrence, setRecurrence] = useState<RecurrenceOption>(
-    recurrenceOptionFromRule(initial?.recurrence_rule ?? null),
+  const inicial = useMemo(
+    () =>
+      recurrenceFormState(
+        initial?.recurrence_rule ?? null,
+        initial?.due_at ? new Date(initial.due_at) : null,
+      ),
+    [initial],
   )
+  const [recurrence, setRecurrence] = useState<RecurrenceOption>(inicial.option)
   // Dias da semana (getDay(): 0=dom..6=sáb) quando a recorrência é 'dias_semana'.
-  const [weekdays, setWeekdays] = useState<number[]>(
-    weekdaysFromRule(initial?.recurrence_rule ?? null),
-  )
+  const [weekdays, setWeekdays] = useState<number[]>(inicial.weekdays)
   const [saving, setSaving] = useState(false)
 
+  // Desmarcar o último dia deixaria a regra vazia e a atividade pararia de
+  // repetir sem aviso — então o único dia marcado fica travado.
   const toggleWeekday = (d: number) =>
-    setWeekdays((prev) =>
-      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort(),
-    )
+    setWeekdays((prev) => {
+      if (!prev.includes(d)) return [...prev, d].sort()
+      return prev.length === 1 ? prev : prev.filter((x) => x !== d)
+    })
 
-  // Ao escolher "Dias da semana" sem nenhum dia marcado, sugere o dia da data.
+  // Ao escolher "Semanalmente" sem nenhum dia marcado, sugere o dia da data.
   const handleRecurrenceChange = (v: RecurrenceOption) => {
     setRecurrence(v)
     if (v === 'dias_semana' && weekdays.length === 0) {
@@ -270,6 +276,7 @@ export function ActivityForm({
                   <button
                     type="button"
                     key={d}
+                    aria-pressed={weekdays.includes(d)}
                     onClick={() => toggleWeekday(d)}
                     className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${
                       weekdays.includes(d)
