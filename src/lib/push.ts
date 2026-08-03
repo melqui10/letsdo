@@ -99,6 +99,8 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, 'profile_id' | 'updated_at'> = {
   before_event_enabled: false,
   before_event_minutes: 30,
   feed_enabled: true,
+  overdue_enabled: false,
+  overdue_interval_hours: 24,
 }
 
 export async function getPrefs(profileId: string): Promise<NotificationPrefs> {
@@ -129,6 +131,8 @@ export async function savePrefs(
       before_event_enabled: current.before_event_enabled,
       before_event_minutes: current.before_event_minutes,
       feed_enabled: current.feed_enabled,
+      overdue_enabled: current.overdue_enabled,
+      overdue_interval_hours: current.overdue_interval_hours,
       ...patch,
       updated_at: new Date().toISOString(),
     },

@@ -16,7 +16,7 @@ interface Payload {
   // Não notificar quem disparou a ação (ex.: o criador da tarefa).
   exclude_profile_id?: string
   // Filtra destinatários pela preferência correspondente.
-  type?: 'feed' | 'daily' | 'before_event'
+  type?: 'feed' | 'daily' | 'before_event' | 'overdue'
   title: string
   body?: string
   url?: string
@@ -31,6 +31,7 @@ const PREF_BY_TYPE: Record<
   feed: { col: 'feed_enabled', def: true },
   daily: { col: 'daily_enabled', def: false },
   before_event: { col: 'before_event_enabled', def: false },
+  overdue: { col: 'overdue_enabled', def: false },
 }
 
 const supabase = createClient(

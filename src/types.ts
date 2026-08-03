@@ -114,6 +114,9 @@ export interface NotificationPrefs {
   before_event_enabled: boolean
   before_event_minutes: number
   feed_enabled: boolean
+  // Lembrete recorrente para tarefas vencidas e não concluídas.
+  overdue_enabled: boolean
+  overdue_interval_hours: number
   updated_at: string
 }
 

@@ -314,7 +314,17 @@ export function Calendario({ household }: { household: Household }) {
                 activity={occ.activity}
                 members={members}
                 categories={categories}
-                onToggle={(x) => run(toggleDone(x.id, !x.is_done)).then(load)}
+                occurrenceDate={occ.date}
+                onToggle={(x) =>
+                  run(
+                    toggleDone(
+                      x.id,
+                      !x.is_done,
+                      dayKey(occ.date),
+                      user?.id ?? null,
+                    ),
+                  ).then(load)
+                }
                 onEdit={(x) => {
                   setEditing(x)
                   setShowForm(true)

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { differenceInCalendarDays, subDays } from 'date-fns'
 import type { Activity, Category, Household, Priority, Profile } from '../types'
 import { PRIORITY_LABELS } from '../types'
 import { useAuth } from '../lib/AuthContext'
@@ -11,10 +12,14 @@ import {
   createActivity,
   deleteActivity,
   listActivities,
+  listCompletions,
+  reopenForNewOccurrence,
   toggleDone,
   updateActivity,
+  type ActivityCompletion,
   type ActivityInput,
 } from '../lib/activities'
+import { currentOccurrence, dayKey } from '../lib/calendar'
 import { ActivityCard } from '../components/ActivityCard'
 import { ActivityForm } from '../components/ActivityForm'
 
@@ -36,6 +41,7 @@ const PRIORITY_ORDER: Record<Priority, number> = {
 export function ListaTarefas({ household }: { household: Household }) {
   const { user } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
+  const [completions, setCompletions] = useState<ActivityCompletion[]>([])
   const [members, setMembers] = useState<Profile[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [filter, setFilter] = useState<Filter>('todas')
@@ -59,6 +65,10 @@ export function ListaTarefas({ household }: { household: Household }) {
       getHouseholdMembers(household.id),
       listCategories(household.id),
     ])
+    // Conclusões recentes: a Lista só precisa da ocorrência corrente de cada
+    // tarefa, e a janela acompanha a que `currentOccurrence` usa.
+    const desde = dayKey(subDays(new Date(), 60))
+    setCompletions(await listCompletions(acts.map((a) => a.id), desde))
     setActivities(acts)
     setMembers(mem)
     setCategories(cats)
@@ -96,33 +106,103 @@ export function ListaTarefas({ household }: { household: Household }) {
     }
   }, [household.id, load])
 
-  const visible = useMemo(() => {
+  // Uma tarefa e a ocorrência dela que está em jogo hoje.
+  interface Pendencia {
+    activity: Activity
+    // Dia da ocorrência corrente (yyyy-MM-dd). Null em tarefa sem prazo.
+    occurrenceKey: string | null
+    occurrenceDate: Date | null
+    done: boolean
+    overdueDays: number
+  }
+
+  const pendencias = useMemo<Pendencia[]>(() => {
     const hoje = todaySP()
-    // A Lista é de tarefas; compromissos vivem na Agenda.
-    let list = activities.filter((a) => a.kind !== 'compromisso')
-    // Oculta tarefas concluídas em dias anteriores; mantém as concluídas hoje.
-    list = list.filter(
-      (a) =>
-        !a.is_done ||
-        (a.completed_at != null && todaySP(new Date(a.completed_at)) === hoje),
+    const agora = new Date()
+    const feitas = new Set(
+      completions.map((c) => `${c.activity_id}|${c.occurrence_date}`),
     )
+    const out: Pendencia[] = []
+
+    // A Lista é de tarefas; compromissos vivem na Agenda.
+    for (const a of activities.filter((x) => x.kind !== 'compromisso')) {
+      // Sem prazo não há o que esperar: aparece sempre, e a conclusão é o
+      // próprio is_done (só existe uma ocorrência possível).
+      if (!a.due_at) {
+        out.push({
+          activity: a,
+          occurrenceKey: hoje,
+          occurrenceDate: null,
+          done: a.is_done,
+          overdueDays: 0,
+        })
+        continue
+      }
+
+      // Ocorrência ainda no futuro: a tarefa não entra na Lista hoje.
+      const occ = currentOccurrence(a, agora)
+      if (!occ) continue
+
+      const key = dayKey(occ)
+      const recorrente = Boolean(a.recurrence_rule)
+      // Em recorrentes, is_done reflete a última ocorrência concluída e pode
+      // estar defasado; a verdade da ocorrência corrente está nas conclusões.
+      const done = recorrente ? feitas.has(`${a.id}|${key}`) : a.is_done
+      out.push({
+        activity: a,
+        occurrenceKey: key,
+        occurrenceDate: occ,
+        done,
+        overdueDays: Math.max(0, differenceInCalendarDays(agora, occ)),
+      })
+    }
+
+    // Oculta o que foi concluído em dias anteriores; mantém o concluído hoje.
+    return out.filter(
+      (p) =>
+        !p.done ||
+        (p.activity.completed_at != null &&
+          todaySP(new Date(p.activity.completed_at)) === hoje),
+    )
+  }, [activities, completions])
+
+  // Recorte pelos filtros da barra, ordenado para exibição.
+  const visible = useMemo<Pendencia[]>(() => {
+    let list = pendencias
     if (filter === 'minhas')
-      list = list.filter((a) => a.assignee_id === user?.id)
-    if (filter === 'pendentes') list = list.filter((a) => !a.is_done)
+      list = list.filter((p) => p.activity.assignee_id === user?.id)
+    if (filter === 'pendentes') list = list.filter((p) => !p.done)
     if (catFilter !== 'todas')
-      list = list.filter((a) => a.category_id === catFilter)
+      list = list.filter((p) => p.activity.category_id === catFilter)
     if (prioFilter !== 'todas')
-      list = list.filter((a) => a.priority === prioFilter)
+      list = list.filter((p) => p.activity.priority === prioFilter)
+
     return list.sort((a, b) => {
-      if (a.is_done !== b.is_done) return a.is_done ? 1 : -1
-      const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+      if (a.done !== b.done) return a.done ? 1 : -1
+      // Atrasadas primeiro, da mais antiga para a mais recente.
+      if ((a.overdueDays > 0) !== (b.overdueDays > 0))
+        return a.overdueDays > 0 ? -1 : 1
+      if (a.overdueDays !== b.overdueDays) return b.overdueDays - a.overdueDays
+      const p =
+        PRIORITY_ORDER[a.activity.priority] - PRIORITY_ORDER[b.activity.priority]
       if (p !== 0) return p
-      if (a.due_at && b.due_at) return a.due_at.localeCompare(b.due_at)
-      if (a.due_at) return -1
-      if (b.due_at) return 1
-      return 0
+      const da = a.occurrenceDate?.getTime() ?? Infinity
+      const db = b.occurrenceDate?.getTime() ?? Infinity
+      return da - db
     })
-  }, [activities, filter, catFilter, prioFilter, user?.id])
+  }, [pendencias, filter, catFilter, prioFilter, user?.id])
+
+  // Virada de ocorrência: a recorrente ficou com is_done=true da ocorrência
+  // passada, mas a corrente está em aberto. Reabre a linha para que as queries
+  // que leem is_done (push, kanban, contadores) voltem a enxergá-la pendente.
+  // As conclusões antigas — e seus pontos — não são tocadas.
+  useEffect(() => {
+    const defasadas = pendencias
+      .filter((p) => p.activity.recurrence_rule && p.activity.is_done && !p.done)
+      .map((p) => p.activity.id)
+    if (defasadas.length === 0) return
+    reopenForNewOccurrence(defasadas).then(load).catch(() => {})
+  }, [pendencias, load])
 
   const handleSubmit = async (input: ActivityInput) => {
     try {
@@ -140,9 +220,8 @@ export function ListaTarefas({ household }: { household: Household }) {
     load()
   }
 
-  const pendentes = activities.filter(
-    (a) => a.kind !== 'compromisso' && !a.is_done,
-  ).length
+  // Conta o que está de fato pendente hoje — ignora o que ainda não venceu.
+  const pendentes = pendencias.filter((p) => !p.done).length
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -219,14 +298,24 @@ export function ListaTarefas({ household }: { household: Household }) {
           </p>
         ) : (
           <ul className="space-y-2">
-            {visible.map((a) => (
+            {visible.map((p) => (
               <ActivityCard
-                key={a.id}
-                activity={a}
+                key={p.activity.id}
+                activity={p.activity}
                 members={members}
                 categories={categories}
+                occurrenceDate={p.occurrenceDate}
+                done={p.done}
+                overdueDays={p.overdueDays}
                 onToggle={(x) =>
-                  run(toggleDone(x.id, !x.is_done)).then(load)
+                  run(
+                    toggleDone(
+                      x.id,
+                      !p.done,
+                      p.occurrenceKey ?? todaySP(),
+                      user?.id ?? null,
+                    ),
+                  ).then(load)
                 }
                 onEdit={(x) => {
                   setEditing(x)

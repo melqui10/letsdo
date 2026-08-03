@@ -9,6 +9,14 @@ interface Props {
   activity: Activity
   members: Profile[]
   categories: Category[]
+  // Data da ocorrência sendo exibida. Numa recorrente é ela, e não o `due_at`
+  // original, que o card mostra — a mensal de setembro diz "01 set".
+  occurrenceDate?: Date | null
+  // Conclusão da ocorrência exibida. Em recorrentes `activity.is_done` reflete
+  // a ocorrência corrente e pode estar defasado; a Lista passa o valor certo.
+  done?: boolean
+  // Dias de atraso da ocorrência (0 = no prazo).
+  overdueDays?: number
   onToggle: (a: Activity) => void
   onEdit: (a: Activity) => void
   onDelete: (a: Activity) => void
@@ -18,6 +26,9 @@ export function ActivityCard({
   activity,
   members,
   categories,
+  occurrenceDate,
+  done: doneProp,
+  overdueDays = 0,
   onToggle,
   onEdit,
   onDelete,
@@ -25,6 +36,7 @@ export function ActivityCard({
   const assignee = members.find((m) => m.id === activity.assignee_id)
   const category = categories.find((c) => c.id === activity.category_id)
   const recurring = Boolean(activity.recurrence_rule)
+  const atrasada = overdueDays > 0 && !(doneProp ?? activity.is_done)
 
   // Celebração local ao concluir: o card é keyed por activity.id, então este
   // estado sobrevive ao reload da lista que o onToggle dispara.
@@ -34,7 +46,7 @@ export function ActivityCard({
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
   // Visual otimista: mostra concluída já no clique, antes do banco responder.
-  const done = activity.is_done || justDone
+  const done = (doneProp ?? activity.is_done) || justDone
 
   function handleToggle() {
     // Guarda com `done` (inclui o otimista) para não celebrar duas vezes num
@@ -113,13 +125,18 @@ export function ActivityCard({
               {category.name}
             </span>
           )}
-          {activity.due_at && (
-            <span>
+          {(occurrenceDate ?? (activity.due_at && new Date(activity.due_at))) && (
+            <span className={atrasada ? 'font-medium text-red-600' : undefined}>
               {format(
-                new Date(activity.due_at),
+                occurrenceDate ?? new Date(activity.due_at as string),
                 activity.is_all_day ? 'dd MMM' : "dd MMM 'às' HH:mm",
                 { locale: ptBR },
               )}
+            </span>
+          )}
+          {atrasada && (
+            <span className="rounded-full bg-red-50 px-2 py-0.5 font-medium text-red-600">
+              Atrasada {overdueDays}d
             </span>
           )}
           {recurring && <span title="Tarefa recorrente">🔁</span>}

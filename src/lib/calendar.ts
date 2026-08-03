@@ -6,6 +6,7 @@ import {
   differenceInCalendarMonths,
   differenceInCalendarWeeks,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
@@ -13,6 +14,7 @@ import {
   startOfDay,
   startOfMonth,
   startOfWeek,
+  subDays,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Activity, Category, Profile } from '../types'
@@ -165,6 +167,34 @@ function occurrencesFor(a: Activity, rangeStart: Date, rangeEnd: Date): Date[] {
     guard++
   }
   return out
+}
+
+// Janela para trás usada ao procurar a ocorrência corrente de uma recorrente.
+// 45 dias cobre folgado o maior intervalo entre ocorrências que a UI gera (a
+// mensal, ≤ 31 dias) e fica abaixo do teto de 60 iterações do laço de
+// 'dias_semana' em `occurrencesFor` — uma janela maior seria truncada lá.
+const JANELA_OCORRENCIA_DIAS = 45
+
+// A ocorrência corrente de uma atividade: a última cujo DIA já chegou.
+//
+// Null significa "ainda não é hora" — a tarefa não deve aparecer na Lista.
+// Isso vale tanto para uma tarefa de sexta vista na quarta quanto para a
+// mensal do dia 01 vista no dia 28. Tarefa sem prazo não tem ocorrência: a
+// Lista a exibe sempre, sem passar por aqui.
+export function currentOccurrence(a: Activity, today: Date = new Date()): Date | null {
+  if (!a.due_at) return null
+  const base = new Date(a.due_at)
+  const fimDoDia = endOfDay(today)
+
+  // Sem recorrência, a ocorrência é o próprio prazo — nada a expandir.
+  if (recurrenceOptionFromRule(a.recurrence_rule) === 'nenhuma') {
+    return startOfDay(base) <= startOfDay(today) ? base : null
+  }
+
+  if (startOfDay(base) > startOfDay(today)) return null
+  const janela = subDays(startOfDay(today), JANELA_OCORRENCIA_DIAS)
+  const ocorrencias = occurrencesFor(a, janela > base ? janela : base, fimDoDia)
+  return ocorrencias.length > 0 ? ocorrencias[ocorrencias.length - 1] : null
 }
 
 // Expande todas as atividades em ocorrências dentro do intervalo dado.

@@ -297,6 +297,44 @@ export function Configuracoes({ onSignOut }: { onSignOut: () => void }) {
                   )}
                 </div>
 
+                <div className="rounded-xl bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-3">
+                      <p className="font-medium text-gray-900">
+                        Tarefas atrasadas
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Lembrete recorrente enquanto uma tarefa passar do
+                        prazo.
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={prefs?.overdue_enabled ?? false}
+                      onChange={(v) => update({ overdue_enabled: v })}
+                    />
+                  </div>
+                  {prefs?.overdue_enabled && (
+                    <label className="mt-3 flex items-center justify-between text-sm text-gray-600">
+                      A cada
+                      <select
+                        value={prefs.overdue_interval_hours}
+                        onChange={(e) =>
+                          update({
+                            overdue_interval_hours: Number(e.target.value),
+                          })
+                        }
+                        className="rounded-lg border border-gray-300 px-2 py-1"
+                      >
+                        <option value={1}>1 hora</option>
+                        <option value={3}>3 horas</option>
+                        <option value={6}>6 horas</option>
+                        <option value={12}>12 horas</option>
+                        <option value={24}>24 horas</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
                   <div className="pr-3">
                     <p className="font-medium text-gray-900">Atividade do lar</p>
